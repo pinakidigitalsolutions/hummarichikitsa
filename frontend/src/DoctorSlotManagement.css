@@ -1,0 +1,263 @@
+.doctor-slot-management {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+.slot-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.slot-header h2 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.slot-header p {
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+.slot-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.date-selection, .time-selection {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.date-selection h3, .time-selection h3 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.input-group input {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.input-group p {
+  margin: 0;
+  font-size: 14px;
+  color: #7f8c8d;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.btn-success {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #27ae60;
+}
+
+.btn-danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.btn-warning {
+  background-color: #f39c12;
+  color: white;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background-color: #d35400;
+}
+
+.btn-secondary {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #7f8c8d;
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.btn-large {
+  padding: 12px 25px;
+  font-size: 16px;
+}
+
+.slots-display {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  margin-bottom: 30px;
+}
+
+.slots-display h3 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #7f8c8d;
+}
+
+.empty-state i {
+  font-size: 50px;
+  margin-bottom: 15px;
+  color: #bdc3c7;
+}
+
+.date-slot-group {
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.date-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.date-header h4 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 16px;
+}
+
+.time-slots {
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.time-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f1f8ff;
+  padding: 8px 15px;
+  border-radius: 20px;
+  border: 1px solid #d0e4ff;
+}
+
+.time-slot span {
+  font-weight: 500;
+}
+
+.slot-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.no-slots {
+  color: #7f8c8d;
+  font-style: italic;
+  margin: 0;
+}
+
+.add-time-btn {
+  align-self: flex-start;
+}
+
+.slot-actions-footer {
+  text-align: center;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .slot-controls {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .date-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .time-slots {
+    flex-direction: column;
+  }
+  
+  .time-slot {
+    justify-content: space-between;
+  }
+}
