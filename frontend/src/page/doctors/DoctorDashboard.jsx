@@ -911,7 +911,9 @@ const DoctorDashboard = () => {
                 appointment.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 appointment?.mobile?.toLowerCase().includes(searchTerm.toLowerCase());
 
-            const matchesFilter = filterStatus === 'all' || appointment.status === filterStatus;
+            const matchesFilter = filterStatus === 'all' 
+                ? (appointment.status !== 'completed' && appointment.status !== 'cancelled')
+                : (appointment.status === filterStatus);
             const matchesDoctor = filterDoctor === 'all' || appointment.doctorId._id === filterDoctor;
 
             return matchesSearch && matchesFilter && matchesDoctor;
@@ -1236,10 +1238,10 @@ const DoctorDashboard = () => {
                                         ConfirmAppointment(appointment?._id);
                                     }
                                 }}
-                                className="p-1.5 sm:p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                                className="p-1.5 sm:p-2 bg-green-50 text-sm text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                                 title={getButtonText(appointment.status)}
                             >
-                                <CheckCircle className="h-4 w-4" />
+                                 {getButtonText(appointment.status)}
                             </button>
                         )}
 

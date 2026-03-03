@@ -148,8 +148,9 @@ export const verifyPayment = async (req, res) => {
             {
                 razorpayPaymentId: razorpay_payment_id,
                 razorpaySignature: razorpay_signature,
-                status: 'Confirmed',
-                paymentStatus: "Completed"
+                status: 'confirmed',
+                paymentStatus: "completed"
+
             },
             { new: true }
         );
@@ -319,30 +320,36 @@ export const updateAppointmentStatus = async (req, res) => {
         }
 
         const appointment = await apponitment.findById(id);
-        if (appointment.status === 'check-in') {
-
-            const doctor = await doctorNodel.findByIdAndUpdate(
-                user._id,
-                { currentAppointment: appointment.appointmentNumber },
-                { new: true }
-            );
-        }
-        const updatedDoctor = await doctorNodel.findById(user._id)
         if (!appointment) {
             return res.status(404).json({ message: "Appointment not found" });
         }
-        if (appointment.status == 'check-in') {
-            status = 'confirmed'
-        } else if (appointment.status === 'confirmed') {
-            status = 'completed'
+
+        if (appointment.status === 'confirmed') {
+            status = 'check-in';
+            // Update doctor's current appointment when someone checks in
+            await doctorNodel.findByIdAndUpdate(
+                appointment.doctorId,
+                { currentAppointment: appointment.appointmentNumber },
+                { new: true }
+            );
+        } else if (appointment.status === 'check-in') {
+            status = 'completed';
+        } else if (appointment.status === 'pending') {
+            status = 'confirmed';
         }
-        appointment.status = status;
-        const newAppointment = await appointment.save();
 
-        io.emit("doctorUpdate", updatedDoctor);
+        if (status) {
+            appointment.status = status;
+            const newAppointment = await appointment.save();
+            const updatedDoctor = await doctorNodel.findById(appointment.doctorId);
 
-        io.emit("appointmentUpdate", newAppointment);
-        return res.json(appointment)
+            io.emit("doctorUpdate", updatedDoctor);
+            io.emit("appointmentUpdate", newAppointment);
+            return res.json(newAppointment);
+        }
+
+        return res.status(400).json({ message: "Invalid status transition or appointment already completed" });
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
