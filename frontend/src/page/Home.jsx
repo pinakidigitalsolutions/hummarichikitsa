@@ -3,8 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { getAllHospital } from "../Redux/hospitalSlice";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, Calendar, CreditCard, CheckCircle, Star, MapPin, Clock, Phone, HeartPulse, Stethoscope, Shield, Ambulance } from 'lucide-react';
-import {  getAllAppointment } from "../Redux/appointment";
-import { getAllDoctors} from "../Redux/doctorSlice";
+import { getAllAppointment } from "../Redux/appointment";
+import { getAllDoctors } from "../Redux/doctorSlice";
 import Layout from "../components/Layout/Layout";
 import { useState } from "react";
 import hospital_img from '../../src/assets/hospital_image.png';
@@ -13,6 +13,7 @@ import abhay from '../../src/assets/abjay.jpg';
 import rohit from '../../src/assets/rohit.jpg';
 import AppointmentsSection from "../components/AppointmentsSection";
 import socket from "../Helper/socket";
+import SkeletonCard from "../components/SkeletonCard";
 
 // Skeleton Components
 const StatsSkeleton = () => (
@@ -131,7 +132,7 @@ const Home = () => {
     socket.on("doctorUpdate", (data) => {
       setdoctors((prev) => {
         const exists = prev.some((a) => a._id === data._id);
-       
+
         if (exists) {
           return prev.map((a) => (a._id === data._id ? data : a));
         }
@@ -141,7 +142,7 @@ const Home = () => {
     socket.on("doctoractive", (data) => {
       setdoctors((prev) => {
         const exists = prev.some((a) => a._id === data._id);
-      
+
         if (exists) {
           return prev.map((a) => (a._id === data._id ? data : a));
         }
@@ -212,7 +213,7 @@ const Home = () => {
   return (
     <Layout>
       <section className="relative bg-gradient-to-r from-blue-900 to-teal-800 text-white py-24">
-        
+
         <div className="absolute inset-0 opacity-15">
           {backgroundImages.map((image, index) => (
             <div
@@ -250,7 +251,9 @@ const Home = () => {
       {/* Stats Bar */}
       <div className="container mx-auto px-4 -mt-12 relative z-20">
         {hospitalsLoading ? (
-          <StatsSkeleton />
+          <div className="bg-white rounded-xl shadow-2xl p-6 flex justify-center items-center">
+            <span className="Loader"></span>
+          </div>
         ) : (
           <div className="bg-white rounded-xl shadow-2xl p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
@@ -385,7 +388,11 @@ const Home = () => {
           </div>
 
           {hospitalsLoading ? (
-            <HospitalSkeleton />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <SkeletonCard layout="vertical" />
+              <SkeletonCard layout="vertical" />
+              <SkeletonCard layout="vertical" />
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {hospital

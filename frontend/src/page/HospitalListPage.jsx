@@ -211,13 +211,13 @@
 //                                                                 <button
 //                                                             onClick={() => navigate(`/hospitals/${hospital._id}/doctors`)}
 //                                                             className={`flex items-center justify-center px-6 py-3 rounded-lg transition text-white bg-blue-600 hover:bg-blue-700`}
-                                                           
+
 //                                                         >
 //                                                             View Doctors <ChevronRight className="ml-2 h-4 w-4" />
 //                                                         </button>
 //                                                             ):(
 //                                                                 <button
-                                                           
+
 //                                                             className={`flex items-center justify-center px-6 py-3 rounded-lg transition text-white ${hospital.status
 //                                                                     ? "bg-blue-600 hover:bg-blue-700"
 //                                                                     : "bg-red-100 disabled cursor-not-allowed"
@@ -228,7 +228,7 @@
 //                                                         </button>
 //                                                             )
 //                                                          }
-                                                        
+
 
 //                                                     </div>
 //                                                 </div>
@@ -277,6 +277,7 @@ import { getAllHospital } from '../Redux/hospitalSlice';
 import { getAllDoctors } from '../Redux/doctorSlice';
 import Layout from '../components/Layout/Layout';
 import hospital_img from '../../src/assets/hospital_image.png';
+import SkeletonCard from '../components/SkeletonCard';
 
 const HospitalListPage = () => {
   const navigate = useNavigate();
@@ -334,28 +335,6 @@ const HospitalListPage = () => {
     return matchesSearch && matchesCity && matchesSpecialty;
   });
 
-  // ✅ Skeleton Loader Component
-  const SkeletonCard = () => (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 animate-pulse">
-      <div className="md:flex">
-        <div className="md:w-1/3 h-64 bg-gray-200" />
-        <div className="p-6 md:w-2/3 space-y-4">
-          <div className="h-6 bg-gray-200 rounded w-1/2" />
-          <div className="h-4 bg-gray-200 rounded w-1/3" />
-          <div className="h-4 bg-gray-200 rounded w-2/3" />
-          <div className="flex gap-2 mt-4">
-            <div className="h-6 w-20 bg-gray-200 rounded-full" />
-            <div className="h-6 w-20 bg-gray-200 rounded-full" />
-            <div className="h-6 w-20 bg-gray-200 rounded-full" />
-          </div>
-          <div className="flex justify-between mt-6">
-            <div className="h-4 bg-gray-200 rounded w-24" />
-            <div className="h-10 w-32 bg-gray-200 rounded" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <Layout>
@@ -429,9 +408,9 @@ const HospitalListPage = () => {
           <div className="grid grid-cols-1 gap-6">
             {loading ? (
               <>
-                <SkeletonCard />
-                <SkeletonCard />
-                <SkeletonCard />
+                <SkeletonCard layout="horizontal" />
+                <SkeletonCard layout="horizontal" />
+                <SkeletonCard layout="horizontal" />
               </>
             ) : filteredHospitals.length > 0 ? (
               filteredHospitals.map((hospital) => {

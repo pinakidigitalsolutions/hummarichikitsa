@@ -227,194 +227,214 @@ Thank you – Hummari Chikitsa
                     </div>
                 </div>
             )}
-            <div className="min-h-screen bg-gray-50 py-1 px-4 ">
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className=" mx-auto"
-                >
-                    {/* Header Card */}
-                    <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6 border border-gray-200">
-                        <div className="bg-blue-600 p-6 text-white">
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="text-white hover:text-blue-200 transition-colors"
-                            >
-                                <IoArrowBackCircle className="text-3xl" />
-                            </button>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h1 className="text-2xl font-bold">Appointment Details</h1>
-                                    <p className="text-indigo-100 mt-1 text-sm">Token No: {appointment?.token}</p>
-                                    <div className="flex gap-2">
-                                        <div onClick={() => {
-                                            setwhatsaapMessage(appointment)
-                                            setTargetMobile(appointment?.mobile || '')
-                                            setIsOpen(true)
-                                        }}
-                                            className='flex-1 bg-green-100 text-center mt-2 text-green-700 cursor-pointer py-1 px-2 rounded text-xs font-medium hover:bg-green-200 transition-colors'>
-                                            Send Details
-                                        </div>
-                                        <div onClick={handleMarkAsPaid}
-                                            className={`flex-1 text-center mt-2 cursor-pointer py-1 px-2 rounded text-xs font-medium transition-colors ${appointment?.paymentStatus === 'paid'
-                                                ? 'bg-green-600 text-white cursor-default'
-                                                : 'bg-red-100 text-red-700 hover:bg-red-200'
-                                                }`}>
-                                            {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
+            <div className="min-h-screen bg-gray-50 py-1 px-4">
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                        <span className="Loader"></span>
+                        <p className="text-gray-600 font-medium mt-4 animate-pulse">Loading appointment details...</p>
+                    </div>
+                ) : !appointment ? (
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+                        <div className="bg-red-50 p-4 rounded-full mb-4">
+                            <IoMdCloseCircle className="text-red-500 text-5xl" />
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-800">Appointment Not Found</h2>
+                        <p className="text-gray-600 mt-2">The appointment you are looking for does not exist or has been removed.</p>
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        >
+                            Go Back
+                        </button>
+                    </div>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mx-auto"
+                    >
+                        {/* Header Card */}
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6 border border-gray-200">
+                            <div className="bg-blue-600 p-6 text-white">
+                                <button
+                                    onClick={() => navigate(-1)}
+                                    className="text-white hover:text-blue-200 transition-colors"
+                                >
+                                    <IoArrowBackCircle className="text-3xl" />
+                                </button>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h1 className="text-2xl font-bold">Appointment Details</h1>
+                                        <p className="text-indigo-100 mt-1 text-sm">Token No: {appointment?.token}</p>
+                                        <div className="flex gap-2">
+                                            <div onClick={() => {
+                                                setwhatsaapMessage(appointment)
+                                                setTargetMobile(appointment?.mobile || '')
+                                                setIsOpen(true)
+                                            }}
+                                                className='flex-1 bg-green-100 text-center mt-2 text-green-700 cursor-pointer py-1 px-2 rounded text-xs font-medium hover:bg-green-200 transition-colors'>
+                                                Send Details
+                                            </div>
+                                            <div onClick={handleMarkAsPaid}
+                                                className={`flex-1 text-center mt-2 cursor-pointer py-1 px-2 rounded text-xs font-medium transition-colors ${appointment?.paymentStatus === 'paid'
+                                                    ? 'bg-green-600 text-white cursor-default'
+                                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                    }`}>
+                                                {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${appointment?.status === 'confirmed'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-green-100 text-green-800'
+                                        }`}>
+
+                                        <IoMdCheckmarkCircle className="mr-1 text-lg" />
+
+                                        {appointment?.status.charAt(0).toUpperCase() + appointment?.status.slice(1)}
+                                    </div>
                                 </div>
-                                <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${appointment?.status === 'confirmed'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-green-100 text-green-800'
-                                    }`}>
+                            </div>
 
-                                    <IoMdCheckmarkCircle className="mr-1 text-lg" />
+                            {/* Appointment Summary */}
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
+                                    <div className="p-2 bg-white rounded-lg shadow-sm">
+                                        <FaCalendarAlt className="text-indigo-600 text-lg" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500">Appointment Date</p>
+                                        <p className="font-medium text-gray-900">{formatDate(appointment?.date)}</p>
+                                    </div>
+                                </div>
 
-                                    {appointment?.status.charAt(0).toUpperCase() + appointment?.status.slice(1)}
+                                <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
+                                    <div className="p-2 bg-white rounded-lg shadow-sm">
+                                        <FaClock className="text-indigo-600 text-lg" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500">Time Slot</p>
+                                        <p className="font-medium text-gray-900">{appointment?.slot}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
+                                    <div className="p-2 bg-white rounded-lg shadow-sm">
+                                        <FaMoneyBillWave className="text-indigo-600 text-lg" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500">Amount Paid</p>
+                                        <p className="font-medium text-green-600">₹{appointment?.booking_amount}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
+                                    <div className="p-2 bg-white rounded-lg shadow-sm">
+                                        <FaFileAlt className="text-indigo-600 text-lg" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500">Payment Method</p>
+                                        <p className="font-medium text-gray-900">{appointment?.paymentMethod}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Appointment Summary */}
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
-                                <div className="p-2 bg-white rounded-lg shadow-sm">
-                                    <FaCalendarAlt className="text-indigo-600 text-lg" />
+                        {/* Patient, Doctor, and Hospital Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            {/* Patient Card */}
+                            <motion.div
+                                whileHover={{ y: -5 }}
+                                className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200"
+                            >
+                                <div className="bg-indigo-50 p-4 border-b border-gray-200">
+                                    <h2 className="font-semibold text-gray-800 flex items-center">
+                                        <FaUser className="text-indigo-600 mr-2" />
+                                        Patient Information
+                                    </h2>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Appointment Date</p>
-                                    <p className="font-medium text-gray-900">{formatDate(appointment?.date)}</p>
+                                <div className="p-4 space-y-3">
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">Full Name</p>
+                                        <p className="font-medium">{appointment?.patient}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">Contact Number</p>
+                                        <p className="font-medium">{appointment?.mobile}</p>
+                                    </div>
                                 </div>
-                            </div>
+                            </motion.div>
 
-                            <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
-                                <div className="p-2 bg-white rounded-lg shadow-sm">
-                                    <FaClock className="text-indigo-600 text-lg" />
+                            {/* Doctor Card */}
+                            <motion.div
+                                whileHover={{ y: -5 }}
+                                className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200"
+                            >
+                                <div className="bg-green-50 p-4 border-b border-gray-200">
+                                    <h2 className="font-semibold text-gray-800 flex items-center">
+                                        <FaUserMd className="text-green-600 mr-2" />
+                                        Doctor Information
+                                    </h2>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Time Slot</p>
-                                    <p className="font-medium text-gray-900">{appointment?.slot}</p>
+                                <div className="p-4 space-y-3">
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">Doctor Name</p>
+                                        <p className="font-medium">{appointment?.doctorId?.name}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">Specialization</p>
+                                        <p className="font-medium">{appointment?.doctorId?.specialty}</p>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
-                                <div className="p-2 bg-white rounded-lg shadow-sm">
-                                    <FaMoneyBillWave className="text-indigo-600 text-lg" />
+                            </motion.div>
+                            <motion.div
+                                whileHover={{ y: -5 }}
+                                className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200"
+                            >
+                                <div className="bg-amber-50 p-4 border-b border-gray-200">
+                                    <h2 className="font-semibold text-gray-800 flex items-center">
+                                        <FaHospital className="text-amber-600 mr-2" />
+                                        Hospital Information
+                                    </h2>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Amount Paid</p>
-                                    <p className="font-medium text-green-600">₹{appointment?.booking_amount}</p>
+                                <div className="p-4 space-y-3">
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">Hospital Name</p>
+                                        <p className="font-medium">{appointment?.hospitalId?.name}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">Contact Number</p>
+                                        <p className="font-medium">{appointment?.hospitalId?.phone}</p>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
-                                <div className="p-2 bg-white rounded-lg shadow-sm">
-                                    <FaFileAlt className="text-indigo-600 text-lg" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Payment Method</p>
-                                    <p className="font-medium text-gray-900">{appointment?.paymentMethod}</p>
-                                </div>
-                            </div>
+                            </motion.div>
                         </div>
-                    </div>
 
-                    {/* Patient, Doctor, and Hospital Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        {/* Patient Card */}
-                        <motion.div
-                            whileHover={{ y: -5 }}
-                            className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200"
-                        >
-                            <div className="bg-indigo-50 p-4 border-b border-gray-200">
-                                <h2 className="font-semibold text-gray-800 flex items-center">
-                                    <FaUser className="text-indigo-600 mr-2" />
-                                    Patient Information
-                                </h2>
-                            </div>
-                            <div className="p-4 space-y-3">
-                                <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider">Full Name</p>
-                                    <p className="font-medium">{appointment?.patient}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider">Contact Number</p>
-                                    <p className="font-medium">{appointment?.mobile}</p>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Doctor Card */}
-                        <motion.div
-                            whileHover={{ y: -5 }}
-                            className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200"
-                        >
-                            <div className="bg-green-50 p-4 border-b border-gray-200">
-                                <h2 className="font-semibold text-gray-800 flex items-center">
-                                    <FaUserMd className="text-green-600 mr-2" />
-                                    Doctor Information
-                                </h2>
-                            </div>
-                            <div className="p-4 space-y-3">
-                                <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider">Doctor Name</p>
-                                    <p className="font-medium">{appointment?.doctorId?.name}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider">Specialization</p>
-                                    <p className="font-medium">{appointment?.doctorId?.specialty}</p>
-                                </div>
-                            </div>
-                        </motion.div>
-                        <motion.div
-                            whileHover={{ y: -5 }}
-                            className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200"
-                        >
-                            <div className="bg-amber-50 p-4 border-b border-gray-200">
-                                <h2 className="font-semibold text-gray-800 flex items-center">
-                                    <FaHospital className="text-amber-600 mr-2" />
-                                    Hospital Information
-                                </h2>
-                            </div>
-                            <div className="p-4 space-y-3">
-                                <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider">Hospital Name</p>
-                                    <p className="font-medium">{appointment?.hospitalId?.name}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider">Contact Number</p>
-                                    <p className="font-medium">{appointment?.hospitalId?.phone}</p>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-
-                    <div className="flex justify-end space-x-4 mt-6">
-                        <motion.button
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleMarkAsPaid}
-                            className={`flex items-center px-6 py-2 rounded-lg font-medium transition-colors ${appointment?.paymentStatus === 'paid'
-                                ? 'bg-green-600 text-white cursor-default'
-                                : 'bg-red-600 text-white hover:bg-red-700'
-                                }`}
-                        >
-                            {appointment?.paymentStatus === 'paid' ? 'Confirmed Paid' : 'Mark as Paid'}
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleDownloadReceipt}
-                            className="flex items-center px-6 py-2 rounded-lg font-medium border border-indigo-500 text-indigo-500 hover:bg-indigo-50 transition-colors"
-                        >
-                            <FaDownload className="mr-2" />
-                            Download Receipt
-                        </motion.button>
-                    </div>
-                </motion.div>
+                        <div className="flex justify-end space-x-4 mt-6">
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleMarkAsPaid}
+                                className={`flex items-center px-6 py-2 rounded-lg font-medium transition-colors ${appointment?.paymentStatus === 'paid'
+                                    ? 'bg-green-600 text-white cursor-default'
+                                    : 'bg-red-600 text-white hover:bg-red-700'
+                                    }`}
+                            >
+                                {appointment?.paymentStatus === 'paid' ? 'Confirmed Paid' : 'Mark as Paid'}
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleDownloadReceipt}
+                                className="flex items-center px-6 py-2 rounded-lg font-medium border border-indigo-500 text-indigo-500 hover:bg-indigo-50 transition-colors"
+                            >
+                                <FaDownload className="mr-2" />
+                                Download Receipt
+                            </motion.button>
+                        </div>
+                    </motion.div>
+                )}
             </div>
         </Dashboard>
     );

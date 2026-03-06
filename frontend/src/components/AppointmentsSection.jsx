@@ -332,6 +332,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, CreditCard } from 'lucide-react';
 import avatar from '../../src/assets/logo-def.png';
+import SkeletonCard from './SkeletonCard';
 
 const AppointmentsSection = ({ isLoggedIn, currentUser, appointments, doctors, hospital, appointmentsLoading, doctorsLoading }) => {
   const navigate = useNavigate();
@@ -370,18 +371,18 @@ const AppointmentsSection = ({ isLoggedIn, currentUser, appointments, doctors, h
   const getTimeSlot = (appointment) => {
     try {
       const doctor = hospitalDoctor?.find(d => d?._id === (appointment?.doctorId?._id || appointment.doctorId));
-      
+
       if (!doctor?.availability) return 'Time not available';
-      
+
       // Find availability for the specific appointment date
-      const availabilityForDate = doctor.availability.find(avail => 
+      const availabilityForDate = doctor.availability.find(avail =>
         avail?.date === appointment?.date
       );
-      
+
       if (!availabilityForDate?.display || !Array.isArray(availabilityForDate.display)) {
         return 'Time not available';
       }
-      
+
       // Get the first time slot or a default message
       return availabilityForDate.display[0] || 'Time not available';
     } catch (error) {
@@ -455,14 +456,18 @@ const AppointmentsSection = ({ isLoggedIn, currentUser, appointments, doctors, h
           </div>
 
           {appointmentsLoading || doctorsLoading ? (
-            <AppointmentSkeleton />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <SkeletonCard layout="vertical" />
+              <SkeletonCard layout="vertical" />
+              <SkeletonCard layout="vertical" />
+            </div>
           ) : filteredAppointments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredAppointments.slice(0, 3).map((appointment) => {
                 // Fixed: Handle both object and string doctorId
                 const doctor = hospitalDoctor?.find(d => d?._id === (appointment?.doctorId?._id || appointment.doctorId));
                 const hospitalInfo = hospital?.find(h => h._id === appointment?.hospitalId);
-                
+
                 // Get time slot using helper function
                 const timeSlot = getTimeSlot(appointment);
 
@@ -513,12 +518,12 @@ const AppointmentsSection = ({ isLoggedIn, currentUser, appointments, doctors, h
                           </div>
                         )}
                         {appointmentIsToday && displayStatus !== "Completed" && !doctor?.active && (
-                                                <div className="flex items-center   px-1 text-wrap  border-amber-100">
-                                                    <p className="text-xs text-red-700 text-center">
-                                                        Doctor is OUT now, He is not actively looking for a patient please wait for him to start.
-                                                    </p>
-                                                </div>
-                                            )}
+                          <div className="flex items-center   px-1 text-wrap  border-amber-100">
+                            <p className="text-xs text-red-700 text-center">
+                              Doctor is OUT now, He is not actively looking for a patient please wait for him to start.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 

@@ -1114,42 +1114,11 @@ const DoctorDashboard = () => {
     // Loading Component
     const LoadingScreen = () => (
         <div className="flex flex-col items-center justify-center min-h-[400px] py-12">
-            {/* Main Spinner */}
-            <div className="relative mb-6">
-                <div className="h-20 w-20 border-4 border-blue-100 rounded-full"></div>
-                <div className="absolute top-0 left-0 h-20 w-20 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <Calendar className="h-8 w-8 text-blue-600 animate-pulse" />
-                </div>
-            </div>
-
-            {/* Loading Text */}
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Loading Appointments</h3>
-            <p className="text-gray-500 mb-6 text-center max-w-md">
+            <span className="Loader"></span>
+            <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-2">Loading Appointments</h3>
+            <p className="text-gray-500 text-center max-w-md">
                 Please wait while we fetch today's appointment schedule...
             </p>
-
-            {/* Progress Bar */}
-            <div className="w-full max-w-sm bg-gray-100 rounded-full h-2 mb-6 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500 h-full rounded-full w-1/2 animate-slide"></div>
-            </div>
-
-            {/* Loading Dots */}
-            <div className="flex space-x-2">
-                <div className="h-2.5 w-2.5 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
-                <div className="h-2.5 w-2.5 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-                <div className="h-2.5 w-2.5 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
-            </div>
-
-            {/* Stats Loading */}
-            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[1, 2, 3, 4].map((item) => (
-                    <div key={item} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                        <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-                    </div>
-                ))}
-            </div>
         </div>
     );
 

@@ -122,11 +122,9 @@ const AnalyticsDashboard = () => {
   if (loading) {
     return (
       <Dashboard>
-        <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-600 font-medium">Loading analytics...</p>
-          </div>
+        <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">
+          <span className="Loader"></span>
+          <p className="text-gray-600 font-medium mt-4">Loading analytics...</p>
         </div>
       </Dashboard>
     );
