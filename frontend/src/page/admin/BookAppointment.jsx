@@ -591,8 +591,10 @@ import Dashboard from '../../components/Layout/Dashboard';
 import axiosInstance from '../../Helper/axiosInstance';
 import { jwtDecode } from "jwt-decode";
 import { format, addDays, isToday, isTomorrow, isBefore } from 'date-fns';
+import { motion } from 'framer-motion';
 
 function BookAppointment() {
+  const colors = { primary: '#0d9488' };
   const [isOpen, setIsOpen] = useState(false);
   const [whatsaapmessage, setwhatsaapMessage] = useState('');
   const [targetMobile, setTargetMobile] = useState('');
@@ -1119,7 +1121,14 @@ Thank you – Hummari Chikitsa
 
           {loading.doctors ? (
             <div className="flex-1 flex flex-col items-center justify-center">
-              <span className="Loader"></span>
+              <div className="flex-1 flex items-center justify-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="rounded-full h-8 w-8 border-t-2 border-b-2"
+                  style={{ borderColor: colors.primary }}
+                />
+              </div>
               <p className="mt-4 text-gray-500 font-medium">Loading doctors list...</p>
             </div>
           ) : (

@@ -13,6 +13,7 @@ import abhay from '../../src/assets/abjay.jpg';
 import rohit from '../../src/assets/rohit.jpg';
 import AppointmentsSection from "../components/AppointmentsSection";
 import socket from "../Helper/socket";
+import { motion } from "framer-motion";
 import SkeletonCard from "../components/SkeletonCard";
 
 // Skeleton Components
@@ -97,6 +98,7 @@ const HospitalSkeleton = () => (
 );
 
 const Home = () => {
+  const colors = { primary: '#0d9488' };
   const navigate = useNavigate();
   const hospital = useSelector((state) => state.hospitals.hospitals);
   const { isLoggedIn, data: currentUser } = useSelector((state) => state.auth);
@@ -252,7 +254,14 @@ const Home = () => {
       <div className="container mx-auto px-4 -mt-12 relative z-20">
         {hospitalsLoading ? (
           <div className="bg-white rounded-xl shadow-2xl p-6 flex justify-center items-center">
-            <span className="Loader"></span>
+            <div className="flex-1 flex items-center justify-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="rounded-full h-8 w-8 border-t-2 border-b-2"
+                style={{ borderColor: colors.primary }}
+              />
+            </div>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-2xl p-6 grid grid-cols-2 md:grid-cols-4 gap-4">

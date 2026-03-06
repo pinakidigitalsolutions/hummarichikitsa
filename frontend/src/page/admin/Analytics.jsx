@@ -8,6 +8,7 @@ import Dashboard from '../../components/Layout/Dashboard';
 import axiosInstance from '../../Helper/axiosInstance';
 
 const AnalyticsDashboard = () => {
+  const colors = { primary: '#0d9488' };
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
@@ -123,7 +124,14 @@ const AnalyticsDashboard = () => {
     return (
       <Dashboard>
         <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">
-          <span className="Loader"></span>
+          <div className="flex-1 flex items-center justify-center">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="rounded-full h-8 w-8 border-t-2 border-b-2"
+              style={{ borderColor: colors.primary }}
+            />
+          </div>
           <p className="text-gray-600 font-medium mt-4">Loading analytics...</p>
         </div>
       </Dashboard>

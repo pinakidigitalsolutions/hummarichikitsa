@@ -32,7 +32,7 @@ const MyHospital = () => {
         active: { backgroundColor: colors.accent },
         deactive: { backgroundColor: colors.danger }
     };
-       const [hospital,sethospital]=useState(null)
+    const [hospital, sethospital] = useState(null)
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
     const [doctor, setDoctor] = useState([])
@@ -73,7 +73,7 @@ const MyHospital = () => {
             try {
                 const response = await axiosInstance.get("/user/me");
                 sethospital(response.data.user);
-                
+
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
@@ -121,27 +121,33 @@ const MyHospital = () => {
 
 
 
-        const [loading, setLoading] = useState(true);
-    
-        useEffect(() => {
-            
-            const timer = setTimeout(() => {
-                setLoading(false);
-            }, 2000);
-    
-            return () => clearTimeout(timer); // cleanup
-        }, []);
-    
-        if (loading) {
-            return (
-                <Dashboard>
-                    <div className="flex justify-center items-center h-full">
-                      
-                        <span className="Loader"></span>
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+
+        const timer = setTimeout(() => {
+            setLoading(false);
+        }, 2000);
+
+        return () => clearTimeout(timer); // cleanup
+    }, []);
+
+    if (loading) {
+        return (
+            <Dashboard>
+                <div className="flex justify-center items-center h-full">
+                    <div className="flex-1 flex items-center justify-center">
+                        <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="rounded-full h-8 w-8 border-t-2 border-b-2"
+                            style={{ borderColor: colors.primary }}
+                        />
                     </div>
-                </Dashboard>
-            );
-        }
+                </div>
+            </Dashboard>
+        );
+    }
 
 
     return (
@@ -450,7 +456,7 @@ const MyHospital = () => {
                                                                     </td>
                                                                     <td className="p-2">
                                                                         <span
-                                                                            className={`px-2 py-1 text-xs rounded-full font-medium ${doc.status  ? 'bg-green-100 h-2 w-2 rounded-full text-green-800' : 'bg-red-100 text-red-800'}`}
+                                                                            className={`px-2 py-1 text-xs rounded-full font-medium ${doc.status ? 'bg-green-100 h-2 w-2 rounded-full text-green-800' : 'bg-red-100 text-red-800'}`}
                                                                         >
                                                                             {doc.status}
                                                                         </span>

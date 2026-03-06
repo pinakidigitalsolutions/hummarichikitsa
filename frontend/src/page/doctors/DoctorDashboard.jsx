@@ -788,8 +788,10 @@ import Dashboard from '../../components/Layout/Dashboard';
 import axiosInstance from '../../Helper/axiosInstance';
 import socket from '../../Helper/socket';
 import { AuthMe } from '../../Redux/AuthLoginSlice';
+import { motion } from 'framer-motion';
 
 const DoctorDashboard = () => {
+    const colors = { primary: '#0d9488' };
     const [isOpen, setIsOpen] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
     const [message, setMessage] = useState('');
@@ -1114,7 +1116,14 @@ const DoctorDashboard = () => {
     // Loading Component
     const LoadingScreen = () => (
         <div className="flex flex-col items-center justify-center min-h-[400px] py-12">
-            <span className="Loader"></span>
+            <div className="flex-1 flex items-center justify-center">
+                <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="rounded-full h-8 w-8 border-t-2 border-b-2"
+                    style={{ borderColor: colors.primary }}
+                />
+            </div>
             <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-2">Loading Appointments</h3>
             <p className="text-gray-500 text-center max-w-md">
                 Please wait while we fetch today's appointment schedule...

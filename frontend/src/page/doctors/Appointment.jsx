@@ -230,7 +230,14 @@ Thank you – Hummari Chikitsa
             <div className="min-h-screen bg-gray-50 py-1 px-4">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                        <span className="Loader"></span>
+                        <div className="flex-1 flex items-center justify-center">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                className="rounded-full h-8 w-8 border-t-2 border-b-2"
+                                style={{ borderColor: colors.primary }}
+                            />
+                        </div>
                         <p className="text-gray-600 font-medium mt-4 animate-pulse">Loading appointment details...</p>
                     </div>
                 ) : !appointment ? (

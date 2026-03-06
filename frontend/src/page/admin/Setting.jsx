@@ -5,7 +5,9 @@ import { ChangePassword, getAllDoctors, GetDoctorHospitalId } from '../../Redux/
 import Dashboard from '../../components/Layout/Dashboard';
 import avatar from '../../assets/logo-def.png';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 const Setting = () => {
+  const colors = { primary: '#0d9488' };
   const dispatch = useDispatch()
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -21,7 +23,7 @@ const Setting = () => {
         const response = await axiosInstance.get("/user/me");
         const res = await dispatch(GetDoctorHospitalId(response.data.user?._id))
         setHospitalInfo(response?.data?.user)
-       
+
         setDoctors(res.payload.doctors);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -169,8 +171,8 @@ const Setting = () => {
       return;
     }
 
-   const res =  await dispatch(ChangePassword({ currentPassword, newPassword }))
-    if(res.payload.success){
+    const res = await dispatch(ChangePassword({ currentPassword, newPassword }))
+    if (res.payload.success) {
       toast.success(res.payload.message)
       setCurrentPassword("");
       setNewPassword("");
@@ -179,27 +181,33 @@ const Setting = () => {
   };
 
 
-      const [loading, setLoading] = useState(true);
-  
-      useEffect(() => {
-          
-          const timer = setTimeout(() => {
-              setLoading(false);
-          }, 2000);
-  
-          return () => clearTimeout(timer); 
-      }, []);
-  
-      if (loading) {
-          return (
-              <Dashboard>
-                  <div className="flex justify-center items-center h-full">
-                    
-                      <span className="Loader"></span>
-                  </div>
-              </Dashboard>
-          );
-      }
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return (
+      <Dashboard>
+        <div className="flex justify-center items-center h-full">
+          <div className="flex-1 flex items-center justify-center">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="rounded-full h-8 w-8 border-t-2 border-b-2"
+              style={{ borderColor: colors.primary }}
+            />
+          </div>
+        </div>
+      </Dashboard>
+    );
+  }
 
   return (
     <Dashboard>
