@@ -198,7 +198,7 @@
 
 //         try {
 //             const res = await dispatch(AppointmentCreate(newAppointment));
-            
+
 //             if (res?.payload?.success) {
 //                 const mobileNumber = 91 + res?.payload.savedAppointment.mobile;
 
@@ -216,7 +216,7 @@
 
 // Thank you – Hummari Chikitsa
 // `.trim();
-                
+
 //                 const encodedMessage = encodeURIComponent(message);
 //                 const whatsappURL = `https://wa.me/${mobileNumber}?text=${encodedMessage}`;
 //                 window.open(whatsappURL, "_blank");
@@ -288,7 +288,7 @@
 //         }
 //     }, [selectDate]);
 
-    
+
 
 //     if (!doctor) {
 //         return (
@@ -576,7 +576,7 @@
 //                                                                     `}
 //                                                                 >
 //                                                                     <span className="block text-sm font-medium">{slot.displayTime}</span>
-                                                                    
+
 
 //                                                                     {selectedSlot === slot.displayTime && (
 //                                                                         <div className="absolute -top-2 -right-2">
@@ -810,18 +810,18 @@ const DoctorDetailPage = () => {
         const now = new Date();
         const currentHours = now.getHours();
         const currentMinutes = now.getMinutes();
-        
+
         // Convert current time to minutes since midnight
         const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-        
+
         // Convert slot start time to minutes since midnight
         const [startHours, startMinutes] = slotStartTime.split(':').map(Number);
         const startTimeInMinutes = startHours * 60 + startMinutes;
-        
+
         // Convert slot end time to minutes since midnight
         const [endHours, endMinutes] = slotEndTime.split(':').map(Number);
         const endTimeInMinutes = endHours * 60 + endMinutes;
-        
+
         // Check if current time is within slot
         return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes;
     };
@@ -830,26 +830,26 @@ const DoctorDetailPage = () => {
     const isSlotSelectable = (slotStartTime, slotEndTime, slotDate) => {
         // If not today, all slots are selectable
         if (!isToday(new Date(slotDate))) return true;
-        
+
         const now = new Date();
         const currentHours = now.getHours();
         const currentMinutes = now.getMinutes();
         const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-        
+
         // Convert slot start time to minutes since midnight
         const [startHours, startMinutes] = slotStartTime.split(':').map(Number);
         const startTimeInMinutes = startHours * 60 + startMinutes;
-        
+
         // For today, slot is selectable if:
         // 1. Current time is within the slot (between startTime and endTime)
         // OR
         // 2. Current time is before the slot start time (future slot)
-        
+
         // Check if current time is within slot
         if (isCurrentTimeInSlot(slotStartTime, slotEndTime)) {
             return true;
         }
-        
+
         // Check if slot is in future
         return currentTimeInMinutes < startTimeInMinutes;
     };
@@ -895,13 +895,13 @@ const DoctorDetailPage = () => {
         return daySchedule.slots.map(slot => {
             const startTime12 = formatTimeTo12Hour(slot.startTime);
             const endTime12 = formatTimeTo12Hour(slot.endTime);
-            
+
             // Check if slot is selectable (for today only)
             const selectable = isSlotSelectable(slot.startTime, slot.endTime, selectDate);
-            
+
             // Check if current time is within this slot (for today only)
-            const isCurrentSlot = isToday(new Date(selectDate)) && 
-                                 isCurrentTimeInSlot(slot.startTime, slot.endTime);
+            const isCurrentSlot = isToday(new Date(selectDate)) &&
+                isCurrentTimeInSlot(slot.startTime, slot.endTime);
 
             return {
                 id: slot.slotId || `${selectedDay}-${slot.startTime}-${slot.endTime}`,
@@ -944,19 +944,19 @@ const DoctorDetailPage = () => {
                     const currentHours = now.getHours();
                     const currentMinutes = now.getMinutes();
                     const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-                    
+
                     const selectableSlots = daySchedule.slots.filter(slot => {
                         const [slotStartHours, slotStartMinutes] = slot.startTime.split(':').map(Number);
                         const slotStartTimeInMinutes = slotStartHours * 60 + slotStartMinutes;
-                        
+
                         // Check if slot is selectable (current time is within slot OR slot is in future)
                         if (isCurrentTimeInSlot(slot.startTime, slot.endTime)) {
                             return true;
                         }
-                        
+
                         return currentTimeInMinutes < slotStartTimeInMinutes;
                     });
-                    
+
                     if (selectableSlots.length > 0) {
                         availableDates.push({
                             date: dateString,
@@ -1028,7 +1028,7 @@ const DoctorDetailPage = () => {
         // Check if selected slot is valid for today's current time
         if (isToday(new Date(selectDate))) {
             const selectedSlotObj = availableSlots.find(slot => slot.displayTime === selectedSlot);
-            
+
             if (selectedSlotObj && !selectedSlotObj.selectable) {
                 toast.error('This time slot is no longer available. Please select another slot.');
                 return;
@@ -1067,7 +1067,7 @@ const DoctorDetailPage = () => {
 
         try {
             const res = await dispatch(AppointmentCreate(newAppointment));
-            
+
             if (res?.payload?.success) {
                 const mobileNumber = 91 + res?.payload.savedAppointment.mobile;
 
@@ -1076,16 +1076,16 @@ Hello ${res?.payload.savedAppointment.patient}, your appointment is confirmed.
 
 Appointment No: ${res?.payload.savedAppointment.appointmentNumber}
 Token: ${res?.payload.savedAppointment.token}
-Date: ${format(new Date(selectDate), 'EEEE, MMMM d, yyyy')}
+Date: ${res?.payload.savedAppointment.date}
 Booking Amount: ₹${res?.payload.savedAppointment.booking_amount}
 Payment: ${res?.payload.savedAppointment.paymentStatus}
-Doctor: ${doctor?.name}
+
 Track or manage your booking:
 https://hummarichikitsa.vercel.app
 
 Thank you – Hummari Chikitsa
 `.trim();
-                
+
                 const encodedMessage = encodeURIComponent(message);
                 const whatsappURL = `https://wa.me/${mobileNumber}?text=${encodedMessage}`;
                 window.open(whatsappURL, "_blank");
@@ -1366,7 +1366,7 @@ Thank you – Hummari Chikitsa
                                                                             {dateInfo.slots} slots
                                                                         </div>
                                                                     )}
-                                                                
+
                                                                 </div>
                                                             </button>
                                                         ))}
@@ -1379,7 +1379,7 @@ Thank you – Hummari Chikitsa
                                                     </div>
                                                 )}
 
-                                                
+
 
                                                 {/* Error Message */}
                                                 {errormessage && (
@@ -1417,33 +1417,33 @@ Thank you – Hummari Chikitsa
                                                         <div className="grid  grid-cols-1 md:grid-cols-3 gap-3">
                                                             {availableSlots.map((slot) => (
                                                                 <>
-                                                                <button
-                                                                    key={slot.id}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        if (slot.selectable) {
-                                                                            setSelectedSlot(slot.displayTime);
-                                                                        }
-                                                                    }}
-                                                                    disabled={!slot.selectable}
-                                                                    className={`
+                                                                    <button
+                                                                        key={slot.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (slot.selectable) {
+                                                                                setSelectedSlot(slot.displayTime);
+                                                                            }
+                                                                        }}
+                                                                        disabled={!slot.selectable}
+                                                                        className={`
                                                                         relative p-1 rounded-xl border transition-all duration-200
-                                                                        ${!slot.selectable 
-                                                                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                                                            : selectedSlot === slot.displayTime
-                                                                                ? 'bg-teal-600 text-white border-teal-700 shadow-md'
-                                                                                : 'bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50/30'
-                                                                        }
+                                                                        ${!slot.selectable
+                                                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                                                                : selectedSlot === slot.displayTime
+                                                                                    ? 'bg-teal-600 text-white border-teal-700 shadow-md'
+                                                                                    : 'bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50/30'
+                                                                            }
                                                                         ${slot.isCurrentSlot ? 'border-2 border-green-500' : ''}
                                                                     `}
-                                                                >
-                                                                    <span className="block text-sm font-medium">{slot.displayTime}</span>
-                                                                </button>
+                                                                    >
+                                                                        <span className="block text-sm font-medium">{slot.displayTime}</span>
+                                                                    </button>
                                                                 </>
                                                             ))}
                                                         </div>
 
-                                                        
+
 
                                                         {selectedSlot && (
                                                             <div className="mt-3 p-3 bg-teal-50 rounded-lg border border-teal-200">
@@ -1456,7 +1456,7 @@ Thank you – Hummari Chikitsa
                                                                     </div>
                                                                     <span className="text-sm font-semibold text-teal-800">
                                                                         {selectedSlot}
-                                                                        {availableSlots.find(slot => slot.displayTime === selectedSlot)?.isCurrentSlot && 
+                                                                        {availableSlots.find(slot => slot.displayTime === selectedSlot)?.isCurrentSlot &&
                                                                             " (Current Slot)"}
                                                                     </span>
                                                                 </div>
@@ -1468,8 +1468,8 @@ Thank you – Hummari Chikitsa
                                                         <Clock className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                                                         <p className="text-sm text-gray-500">No time slots available for this date</p>
                                                         <p className="text-xs text-gray-400 mt-1">
-                                                            {isToday(new Date(selectDate)) 
-                                                                ? "All available slots for today have passed or are not selectable" 
+                                                            {isToday(new Date(selectDate))
+                                                                ? "All available slots for today have passed or are not selectable"
                                                                 : "Doctor may not be available on this day"}
                                                         </p>
                                                     </div>

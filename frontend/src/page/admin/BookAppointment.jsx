@@ -595,6 +595,7 @@ import { format, addDays, isToday, isTomorrow, isBefore } from 'date-fns';
 function BookAppointment() {
   const [isOpen, setIsOpen] = useState(false);
   const [whatsaapmessage, setwhatsaapMessage] = useState('');
+  const [targetMobile, setTargetMobile] = useState('');
 
   // Helper function to convert 24-hour time to 12-hour format
   const formatTimeTo12Hour = (time24) => {
@@ -651,29 +652,36 @@ function BookAppointment() {
     return format(date, 'EEE, MMM d');
   };
 
-  const handleWhatsAppSend = () => {
-    const phoneNumber = whatsaapmessage.mobile;
-    const data = whatsaapmessage;
-    const message = `
-Hello ${data.patient},
+  const getFormattedMessage = (data) => {
+    return `
+Hello ${data.patient}, your appointment is confirmed.
 
-Your Appointment Details:
-• Appointment Number: ${data.appointmentNumber}
-• Token Number: ${data.token}
-• Date: ${data.date}
-• Booking Amount: ₹${data.booking_amount}
-• Payment Status: ${data.paymentStatus}
+Appointment No: ${data.appointmentNumber}
+Token: ${data.token}
+Date: ${data.date}
+Booking Amount: ₹${data.booking_amount}
+Payment: ${data.paymentStatus}
 
-Thank you!
+Track or manage your booking:
+https://hummarichikitsa.vercel.app
+
+Thank you – Hummari Chikitsa
     `.trim();
+  };
+
+  const handleWhatsAppSend = () => {
+    const data = whatsaapmessage;
+    const message = getFormattedMessage(data);
 
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/91${phoneNumber}?text=${encodedMessage}`;
+    const whatsappUrl = `https://wa.me/91${targetMobile || data.mobile}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
 
   const handleSMSSend = () => {
-    const smsUrl = `sms:${whatsaapmessage.mobile}?body=${encodeURIComponent(message)}`;
+    const data = whatsaapmessage;
+    const message = getFormattedMessage(data);
+    const smsUrl = `sms:${targetMobile || data.mobile}?body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
   };
 
@@ -1018,6 +1026,7 @@ Thank you!
         setAvailableSlots([]);
         setActiveSection('patient');
         setwhatsaapMessage(response.payload.savedAppointment);
+        setTargetMobile(response.payload.savedAppointment.mobile || '');
         setIsOpen(true);
       }
     } catch (err) {
@@ -1029,415 +1038,442 @@ Thank you!
 
   return (
     <Dashboard>
-      {/* Modal */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Send Message</h2>
+      <>
+        {/* Modal */}
+        {isOpen && (
+          <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Send Message</h2>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Recipient Mobile Number
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-shrink-0 flex items-center justify-center w-10 bg-gray-100 border border-gray-300 rounded-l-lg text-gray-500 text-sm">
+                    +91
+                  </div>
+                  <input
+                    type="tel"
+                    value={targetMobile}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      if (val.length <= 10) setTargetMobile(val);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                    placeholder="Enter 10-digit mobile number"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Default: {whatsaapmessage?.mobile}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleWhatsAppSend}
+                  className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <i className="fab fa-whatsapp text-lg"></i>
+                  WhatsApp
+                </button>
+                <button
+                  onClick={handleSMSSend}
+                  className="md:hidden flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <i className="fas fa-comment text-lg"></i>
+                  SMS
+                </button>
+              </div>
+
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="w-full mt-4 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
               >
-                &times;
+                Cancel
               </button>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleWhatsAppSend}
-                className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <i className="fab fa-whatsapp text-lg"></i>
-                WhatsApp
-              </button>
-              <button
-                onClick={handleSMSSend}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <i className="fas fa-comment text-lg"></i>
-                SMS
-              </button>
-            </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="w-full mt-4 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-            >
-              Cancel
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="h-screen flex flex-col bg-gray-50">
-        <div className="px-6 py-4 text-white">
-          <h2 className="text-xl font-bold text-gray-700">Book Appointment</h2>
-          <p className="text-gray-600 text-sm mt-1">Schedule a visit with our healthcare professionals</p>
-        </div>
+        <div className="h-screen flex flex-col bg-gray-50">
+          <div className="px-6 py-4 text-white">
+            <h2 className="text-xl font-bold text-gray-700">Book Appointment</h2>
+            <p className="text-gray-600 text-sm mt-1">Schedule a visit with our healthcare professionals</p>
+          </div>
 
-        <div className="flex border-b border-gray-200 bg-white px-4">
-          {['patient', 'appointment', 'payment'].map((section) => (
-            <button
-              key={section}
-              onClick={() => setActiveSection(section)}
-              className={`px-4 py-3 text-sm font-medium capitalize flex items-center ${activeSection === section ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              {section === 'patient' && (
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
-              )}
-              {section === 'appointment' && (
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-              )}
-              {section === 'payment' && (
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-              )}
-              {section}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          {errors.form && (
-            <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded flex items-center text-sm">
-              <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <span>{errors.form}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border-l-4 border-green-500 text-green-700 rounded flex items-center text-sm">
-              <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>{success}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Patient Information Section */}
-            {(activeSection === 'patient') && (
-              <div className="space-y-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <h3 className="text-md font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <div className="flex border-b border-gray-200 bg-white px-4">
+            {['patient', 'appointment', 'payment'].map((section) => (
+              <button
+                key={section}
+                onClick={() => setActiveSection(section)}
+                className={`px-4 py-3 text-sm font-medium capitalize flex items-center ${activeSection === section ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                {section === 'patient' && (
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                   </svg>
-                  Patient Details
-                </h3>
+                )}
+                {section === 'appointment' && (
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                )}
+                {section === 'payment' && (
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  </svg>
+                )}
+                {section}
+              </button>
+            ))}
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                  <input
-                    type="text"
-                    name="patient"
-                    value={formData.patient}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm ${errors.patient ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
-                    placeholder="Enter patient's full name"
-                  />
-                  {errors.patient && <p className="mt-1 text-xs text-red-600">{errors.patient}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number *</label>
-                  <input
-                    type="tel"
-                    name="mobile"
-                    value={formData.mobile}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm ${errors.mobile ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
-                    placeholder="10-digit mobile number"
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^\d{0,10}$/.test(value)) {
-                        handleChange(e);
-                      }
-                    }}
-                  />
-                  {errors.mobile && <p className="mt-1 text-xs text-red-600">{errors.mobile}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age *</label>
-                  <input
-                    type="tel"
-                    name="dob"
-                    value={formData.dob}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                    placeholder="Patient's age"
-                    required
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^\d*$/.test(value)) {
-                        handleChange(e);
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection('appointment')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  >
-                    Next: Appointment Details
-                  </button>
-                </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {errors.form && (
+              <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded flex items-center text-sm">
+                <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span>{errors.form}</span>
               </div>
             )}
 
-            {/* Appointment Details Section */}
-            {(activeSection === 'appointment') && (
-              <div className="space-y-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <h3 className="text-md font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                  </svg>
-                  Appointment Details
-                </h3>
+            {success && (
+              <div className="mb-4 p-3 bg-green-50 border-l-4 border-green-500 text-green-700 rounded flex items-center text-sm">
+                <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>{success}</span>
+              </div>
+            )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Doctor *</label>
-                  <select
-                    name="doctorId"
-                    value={formData.doctorId}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm appearance-none ${errors.doctorId
-                      ? 'border-red-300 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-blue-500'
-                      }`}
-                    disabled={decoded.role === 'doctor'}
-                  >
-                    {decoded?.role === 'doctor' ? (
-                      <>
-                        {doctors?.filter((e) => decoded?.id === e?._id).map((doctor) => (
-                          <option key={doctor._id} value={doctor._id}>
-                            {doctor.name} ({doctor.specialty})
-                          </option>
-                        ))}
-                      </>
-                    ) : (
-                      <>
-                        <option value="">Select a Doctor</option>
-                        {doctors?.map((doctor) => (
-                          <option key={doctor._id} value={doctor._id}>
-                            {doctor.name} ({doctor.specialty})
-                          </option>
-                        ))}
-                      </>
-                    )}
-                  </select>
-                  {errors.doctorId && <p className="mt-1 text-xs text-red-600">{errors.doctorId}</p>}
-                </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Patient Information Section */}
+              {(activeSection === 'patient') && (
+                <div className="space-y-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <h3 className="text-md font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    Patient Details
+                  </h3>
 
-                {/* Date Selection for Next 7 Days */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Date *</label>
-                  {availableDates.length > 0 ? (
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                      {availableDates.map((dateInfo) => (
-                        <button
-                          key={dateInfo.date}
-                          type="button"
-                          onClick={() => handleDateSelect(dateInfo.date)}
-                          className={`flex-shrink-0 px-4 py-2.5 rounded-lg font-medium shadow-md transition-all min-w-[120px] ${selectedDate === dateInfo.date
-                            ? 'bg-blue-700 text-white hover:bg-blue-800'
-                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                            }`}
-                        >
-                          <div className="text-center">
-                            <div className="font-semibold">{dateInfo.label}</div>
-                            <div className="text-xs opacity-80 mt-1">
-                              {dateInfo.day}
-                            </div>
-                            {dateInfo.slots > 0 && (
-                              <div className="text-xs mt-1 bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">
-                                {dateInfo.slots} slots
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 bg-gray-50 rounded-lg">
-                      <svg className="mx-auto h-5 w-5 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                      </svg>
-                      <p className="text-sm text-gray-500">No dates available for selected doctor</p>
-                      <p className="text-xs text-gray-400 mt-1">Please select another doctor</p>
-                    </div>
-                  )}
-                  {errors.date && <p className="mt-1 text-xs text-red-600">{errors.date}</p>}
-                </div>
-
-                {/* Time Slot Selection */}
-                {selectedDate && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Time Slot *</label>
-                    {availableSlots.length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {availableSlots.map((slot) => (
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      name="patient"
+                      value={formData.patient}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm ${errors.patient ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
+                      placeholder="Enter patient's full name"
+                    />
+                    {errors.patient && <p className="mt-1 text-xs text-red-600">{errors.patient}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number *</label>
+                    <input
+                      type="tel"
+                      name="mobile"
+                      value={formData.mobile}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm ${errors.mobile ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
+                      placeholder="10-digit mobile number"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d{0,10}$/.test(value)) {
+                          handleChange(e);
+                        }
+                      }}
+                    />
+                    {errors.mobile && <p className="mt-1 text-xs text-red-600">{errors.mobile}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Age *</label>
+                    <input
+                      type="tel"
+                      name="dob"
+                      value={formData.dob}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                      placeholder="Patient's age"
+                      required
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*$/.test(value)) {
+                          handleChange(e);
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection('appointment')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    >
+                      Next: Appointment Details
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Appointment Details Section */}
+              {(activeSection === 'appointment') && (
+                <div className="space-y-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <h3 className="text-md font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Appointment Details
+                  </h3>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Doctor *</label>
+                    <select
+                      name="doctorId"
+                      value={formData.doctorId}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm appearance-none ${errors.doctorId
+                        ? 'border-red-300 focus:ring-red-500'
+                        : 'border-gray-300 focus:ring-blue-500'
+                        }`}
+                      disabled={decoded.role === 'doctor'}
+                    >
+                      {decoded?.role === 'doctor' ? (
+                        <>
+                          {doctors?.filter((e) => decoded?.id === e?._id).map((doctor) => (
+                            <option key={doctor._id} value={doctor._id}>
+                              {doctor.name} ({doctor.specialty})
+                            </option>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <option value="">Select a Doctor</option>
+                          {doctors?.map((doctor) => (
+                            <option key={doctor._id} value={doctor._id}>
+                              {doctor.name} ({doctor.specialty})
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
+                    {errors.doctorId && <p className="mt-1 text-xs text-red-600">{errors.doctorId}</p>}
+                  </div>
+
+                  {/* Date Selection for Next 7 Days */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Date *</label>
+                    {availableDates.length > 0 ? (
+                      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                        {availableDates.map((dateInfo) => (
                           <button
-                            key={slot.id}
+                            key={dateInfo.date}
                             type="button"
-                            onClick={() => setSelectedSlot(slot.displayTime)}
-                            disabled={!slot.selectable}
-                            className={`p-2 rounded-lg border transition-all duration-200 text-sm ${!slot.selectable
-                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                              : selectedSlot === slot.displayTime
-                                ? 'bg-teal-600 text-white border-teal-700 shadow-sm'
-                                : 'bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50/30'
-                              } ${slot.isCurrentSlot ? 'border-2 border-green-500' : ''}`}
+                            onClick={() => handleDateSelect(dateInfo.date)}
+                            className={`flex-shrink-0 px-4 py-2.5 rounded-lg font-medium shadow-md transition-all min-w-[120px] ${selectedDate === dateInfo.date
+                              ? 'bg-blue-700 text-white hover:bg-blue-800'
+                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                              }`}
                           >
-                            {slot.displayTime}
-                            {slot.isCurrentSlot && " *"}
+                            <div className="text-center">
+                              <div className="font-semibold">{dateInfo.label}</div>
+                              <div className="text-xs opacity-80 mt-1">
+                                {dateInfo.day}
+                              </div>
+                              {dateInfo.slots > 0 && (
+                                <div className="text-xs mt-1 bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">
+                                  {dateInfo.slots} slots
+                                </div>
+                              )}
+                            </div>
                           </button>
                         ))}
                       </div>
                     ) : (
                       <div className="text-center py-4 bg-gray-50 rounded-lg">
                         <svg className="mx-auto h-5 w-5 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
-                        <p className="text-sm text-gray-500">No time slots available for this date</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {isToday(new Date(selectedDate))
-                            ? "All available slots for today have passed"
-                            : "Doctor is not available on this day"}
-                        </p>
+                        <p className="text-sm text-gray-500">No dates available for selected doctor</p>
+                        <p className="text-xs text-gray-400 mt-1">Please select another doctor</p>
                       </div>
                     )}
-                    {selectedSlot && (
-                      <div className="mt-3 p-3 bg-teal-50 rounded-lg border border-teal-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <svg className="h-4 w-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span className="text-sm font-medium text-gray-700">Selected Time</span>
-                          </div>
-                          <span className="text-sm font-semibold text-teal-800">
-                            {selectedSlot}
-                            {availableSlots.find(slot => slot.displayTime === selectedSlot)?.isCurrentSlot &&
-                              " (Current Slot)"}
-                          </span>
+                    {errors.date && <p className="mt-1 text-xs text-red-600">{errors.date}</p>}
+                  </div>
+
+                  {/* Time Slot Selection */}
+                  {selectedDate && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Select Time Slot *</label>
+                      {availableSlots.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {availableSlots.map((slot) => (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              onClick={() => setSelectedSlot(slot.displayTime)}
+                              disabled={!slot.selectable}
+                              className={`p-2 rounded-lg border transition-all duration-200 text-sm ${!slot.selectable
+                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                : selectedSlot === slot.displayTime
+                                  ? 'bg-teal-600 text-white border-teal-700 shadow-sm'
+                                  : 'bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50/30'
+                                } ${slot.isCurrentSlot ? 'border-2 border-green-500' : ''}`}
+                            >
+                              {slot.displayTime}
+                              {slot.isCurrentSlot && " *"}
+                            </button>
+                          ))}
                         </div>
-                      </div>
-                    )}
-                    {errors.slot && <p className="mt-1 text-xs text-red-600">{errors.slot}</p>}
-                  </div>
-                )}
-
-                <div className="flex justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection('patient')}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-                  >
-                    Back to Patient Details
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection('payment')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  >
-                    Next: Payment
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Payment Information Section */}
-            {(activeSection === 'payment') && (
-              <div className="space-y-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <h3 className="text-md font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                  </svg>
-                  Payment Information
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Booking Amount *</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500 text-sm">₹</span>
-                      </div>
-                      <input
-                        type="tel"
-                        name="booking_amount"
-                        value={formData.booking_amount}
-                        onChange={handleAmountChange}
-                        className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm ${errors.booking_amount ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
-                        placeholder="Enter amount"
-                      />
-                      {errors.booking_amount && <p className="mt-1 text-xs text-red-600">{errors.booking_amount}</p>}
+                      ) : (
+                        <div className="text-center py-4 bg-gray-50 rounded-lg">
+                          <svg className="mx-auto h-5 w-5 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                          <p className="text-sm text-gray-500">No time slots available for this date</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {isToday(new Date(selectedDate))
+                              ? "All available slots for today have passed"
+                              : "Doctor is not available on this day"}
+                          </p>
+                        </div>
+                      )}
+                      {selectedSlot && (
+                        <div className="mt-3 p-3 bg-teal-50 rounded-lg border border-teal-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <svg className="h-4 w-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                              </svg>
+                              <span className="text-sm font-medium text-gray-700">Selected Time</span>
+                            </div>
+                            <span className="text-sm font-semibold text-teal-800">
+                              {selectedSlot}
+                              {availableSlots.find(slot => slot.displayTime === selectedSlot)?.isCurrentSlot &&
+                                " (Current Slot)"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {errors.slot && <p className="mt-1 text-xs text-red-600">{errors.slot}</p>}
                     </div>
-                    {decoded.role === 'doctor' && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Default consultation fee: ₹{selectedDoctor?.consultationFee}
-                      </p>
-                    )}
-                  </div>
+                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
-                    <select
-                      name="paymentStatus"
-                      value={formData.paymentStatus}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none"
+                  <div className="flex justify-between pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection('patient')}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
                     >
-                      <option value="Cash">Cash</option>
-                      <option value="online">Online</option>
-                    </select>
+                      Back to Patient Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection('payment')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    >
+                      Next: Payment
+                    </button>
                   </div>
                 </div>
+              )}
 
-                <div className="flex justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection('appointment')}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-                  >
-                    Back to Appointment
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading.submitting}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
-                  >
-                    {loading.submitting ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
-                        </svg>
-                        Book Appointment
-                      </>
-                    )}
-                  </button>
+              {/* Payment Information Section */}
+              {(activeSection === 'payment') && (
+                <div className="space-y-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <h3 className="text-md font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Payment Information
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Booking Amount *</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 text-sm">₹</span>
+                        </div>
+                        <input
+                          type="tel"
+                          name="booking_amount"
+                          value={formData.booking_amount}
+                          onChange={handleAmountChange}
+                          className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm ${errors.booking_amount ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
+                          placeholder="Enter amount"
+                        />
+                        {errors.booking_amount && <p className="mt-1 text-xs text-red-600">{errors.booking_amount}</p>}
+                      </div>
+                      {decoded.role === 'doctor' && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Default consultation fee: ₹{selectedDoctor?.consultationFee}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
+                      <select
+                        name="paymentStatus"
+                        value={formData.paymentStatus}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm appearance-none"
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="online">Online</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection('appointment')}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
+                    >
+                      Back to Appointment
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading.submitting}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
+                    >
+                      {loading.submitting ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                          </svg>
+                          Book Appointment
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </form>
+              )}
+            </form>
+          </div>
         </div>
-      </div>
+      </>
     </Dashboard>
   );
 }

@@ -12,15 +12,14 @@ const AppointmentDetails = () => {
     const [appointment, setAppointments] = useState(null);
     const [whatsaapmessage, setwhatsaapMessage] = useState('');
     const [isOpen, setIsOpen] = useState(false);
+    const [targetMobile, setTargetMobile] = useState('');
     const { id } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate()
 
-    const handleWhatsAppSend = () => {
-        const phoneNumber = whatsaapmessage.mobile;
-        const data = whatsaapmessage
-        const message = `
-  Hello ${data.patient}, your appointment is confirmed.
+    const getFormattedMessage = (data) => {
+        return `
+Hello ${data.patient}, your appointment is confirmed.
 
 Appointment No: ${data.appointmentNumber}
 Token: ${data.token}
@@ -32,15 +31,22 @@ Track or manage your booking:
 https://hummarichikitsa.vercel.app
 
 Thank you – Hummari Chikitsa
-      `.trim();
+        `.trim();
+    };
+
+    const handleWhatsAppSend = () => {
+        const data = whatsaapmessage;
+        const message = getFormattedMessage(data);
 
         const encodedMessage = encodeURIComponent(message);
-        const whatsappUrl = `https://wa.me/91${phoneNumber}?text=${encodedMessage}`;
+        const whatsappUrl = `https://wa.me/91${targetMobile || data.mobile}?text=${encodedMessage}`;
         window.open(whatsappUrl, '_blank');
     };
 
     const handleSMSSend = () => {
-        const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+        const data = whatsaapmessage;
+        const message = getFormattedMessage(data);
+        const smsUrl = `sms:${targetMobile || data.mobile}?body=${encodeURIComponent(message)}`;
         window.location.href = smsUrl;
     };
     const colors = {
@@ -87,6 +93,29 @@ Thank you – Hummari Chikitsa
                                 &times;
                             </button>
                         </div>
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Recipient Mobile Number
+                            </label>
+                            <div className="flex gap-2">
+                                <div className="flex-shrink-0 flex items-center justify-center w-10 bg-gray-100 border border-gray-300 rounded-l-lg text-gray-500 text-sm">
+                                    +91
+                                </div>
+                                <input
+                                    type="tel"
+                                    value={targetMobile}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '');
+                                        if (val.length <= 10) setTargetMobile(val);
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                    placeholder="Enter 10-digit mobile number"
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">
+                                Default: {whatsaapmessage?.mobile}
+                            </p>
+                        </div>
                         {/* Action Buttons */}
                         <div className="flex gap-3">
                             {/* WhatsApp Button */}
@@ -103,7 +132,7 @@ Thank you – Hummari Chikitsa
                             <button
                                 onClick={handleSMSSend}
 
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                className="md:hidden flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                             >
                                 <i className="fas fa-comment text-lg"></i>
                                 SMS
@@ -143,6 +172,7 @@ Thank you – Hummari Chikitsa
                                     <p className="text-indigo-100 mt-1 text-sm">Token No: {appointment?.token}</p>
                                     <div onClick={() => {
                                         setwhatsaapMessage(appointment)
+                                        setTargetMobile(appointment?.mobile || '')
                                         setIsOpen(true)
                                     }
                                     }
