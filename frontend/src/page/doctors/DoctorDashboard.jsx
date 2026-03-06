@@ -911,7 +911,7 @@ const DoctorDashboard = () => {
                 appointment.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 appointment?.mobile?.toLowerCase().includes(searchTerm.toLowerCase());
 
-            const matchesFilter = filterStatus === 'all' 
+            const matchesFilter = filterStatus === 'all'
                 ? (appointment.status !== 'completed' && appointment.status !== 'cancelled')
                 : (appointment.status === filterStatus);
             const matchesDoctor = filterDoctor === 'all' || appointment.doctorId._id === filterDoctor;
@@ -1071,8 +1071,20 @@ const DoctorDashboard = () => {
                     hospitalId = response?.data?.user?._id;
                 }
 
-                const doctorsResponse = await dispatch(GetDoctorHospitalId(hospitalId));
-                setDoctors(doctorsResponse.payload.doctors || []);
+                let doctorsResponse;
+                if (response?.data?.user?.role === 'admin') {
+                    doctorsResponse = await dispatch(getAllDoctors());
+                } else {
+                    doctorsResponse = await dispatch(GetDoctorHospitalId(hospitalId));
+                }
+
+                if (doctorsResponse?.payload?.doctors) {
+                    setDoctors(doctorsResponse.payload.doctors);
+                } else if (Array.isArray(doctorsResponse?.payload)) {
+                    setDoctors(doctorsResponse.payload);
+                } else {
+                    setDoctors([]);
+                }
             } catch (err) {
                 console.error("Failed to load doctors:", err);
             }
@@ -1241,7 +1253,7 @@ const DoctorDashboard = () => {
                                 className="p-1.5 sm:p-2 bg-green-50 text-sm text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                                 title={getButtonText(appointment.status)}
                             >
-                                 {getButtonText(appointment.status)}
+                                {getButtonText(appointment.status)}
                             </button>
                         )}
 

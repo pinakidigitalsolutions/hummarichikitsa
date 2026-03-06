@@ -219,7 +219,7 @@
 //     }
 //   };
 
- 
+
 
 //   return (
 //     <Dashboard>
@@ -585,7 +585,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { GetDoctorHospitalId } from '../../Redux/doctorSlice';
+import { GetDoctorHospitalId, getAllDoctors } from '../../Redux/doctorSlice';
 import { AppointmentCreate } from '../../Redux/appointment';
 import Dashboard from '../../components/Layout/Dashboard';
 import axiosInstance from '../../Helper/axiosInstance';
@@ -615,32 +615,32 @@ function BookAppointment() {
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-    
+
     const [startHours, startMinutes] = slotStartTime.split(':').map(Number);
     const startTimeInMinutes = startHours * 60 + startMinutes;
-    
+
     const [endHours, endMinutes] = slotEndTime.split(':').map(Number);
     const endTimeInMinutes = endHours * 60 + endMinutes;
-    
+
     return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes;
   };
 
   // Helper function to check if slot is selectable
   const isSlotSelectable = (slotStartTime, slotEndTime, slotDate) => {
     if (!isToday(new Date(slotDate))) return true;
-    
+
     const now = new Date();
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
     const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-    
+
     const [startHours, startMinutes] = slotStartTime.split(':').map(Number);
     const startTimeInMinutes = startHours * 60 + startMinutes;
-    
+
     if (isCurrentTimeInSlot(slotStartTime, slotEndTime)) {
       return true;
     }
-    
+
     return currentTimeInMinutes < startTimeInMinutes;
   };
 
@@ -725,10 +725,10 @@ Thank you!
     return daySchedule.slots.map(slot => {
       const startTime12 = formatTimeTo12Hour(slot.startTime);
       const endTime12 = formatTimeTo12Hour(slot.endTime);
-      
+
       const selectable = isSlotSelectable(slot.startTime, slot.endTime, date);
-      const isCurrentSlot = isToday(new Date(date)) && 
-                           isCurrentTimeInSlot(slot.startTime, slot.endTime);
+      const isCurrentSlot = isToday(new Date(date)) &&
+        isCurrentTimeInSlot(slot.startTime, slot.endTime);
 
       return {
         id: slot.slotId || `${selectedDay}-${slot.startTime}-${slot.endTime}`,
@@ -771,18 +771,18 @@ Thank you!
           const currentHours = now.getHours();
           const currentMinutes = now.getMinutes();
           const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-          
+
           const selectableSlots = daySchedule.slots.filter(slot => {
             const [slotStartHours, slotStartMinutes] = slot.startTime.split(':').map(Number);
             const slotStartTimeInMinutes = slotStartHours * 60 + slotStartMinutes;
-            
+
             if (isCurrentTimeInSlot(slot.startTime, slot.endTime)) {
               return true;
             }
-            
+
             return currentTimeInMinutes < slotStartTimeInMinutes;
           });
-          
+
           if (selectableSlots.length > 0) {
             availableDates.push({
               date: dateString,
@@ -821,7 +821,13 @@ Thank you!
 
         setHospitalId(hospitalId);
 
-        const doctorsResponse = await dispatch(GetDoctorHospitalId(hospitalId));
+        let doctorsResponse;
+        if (decoded?.role === 'admin') {
+          doctorsResponse = await dispatch(getAllDoctors());
+        } else {
+          doctorsResponse = await dispatch(GetDoctorHospitalId(hospitalId));
+        }
+
         const doctorsList = doctorsResponse?.payload?.doctors || [];
         setDoctors(doctorsList);
 
@@ -832,7 +838,7 @@ Thank you!
             setSelectedDoctor(doctor);
             const dates = getAvailableDatesForDoctor(doctor);
             setAvailableDates(dates);
-            
+
             if (dates.length > 0 && !selectedDate) {
               setSelectedDate(dates[0].date);
               const slots = getTimeSlotsForSelectedDate(doctor, dates[0].date);
@@ -861,19 +867,19 @@ Thank you!
   const handleDoctorChange = (e) => {
     const doctorId = e.target.value;
     const doctor = doctors.find(d => d._id === doctorId);
-    
+
     setSelectedDoctor(doctor);
-    
+
     if (doctor) {
       // Get available dates for this doctor
       const dates = getAvailableDatesForDoctor(doctor);
       setAvailableDates(dates);
-      
+
       // Reset date and slot selection
       setSelectedDate('');
       setSelectedSlot('');
       setAvailableSlots([]);
-      
+
       // Set booking amount
       setFormData(prev => ({
         ...prev,
@@ -887,7 +893,7 @@ Thank you!
   const handleDateSelect = (date) => {
     setSelectedDate(date);
     setSelectedSlot('');
-    
+
     if (selectedDoctor) {
       const slots = getTimeSlotsForSelectedDate(selectedDoctor, date);
       setAvailableSlots(slots);
@@ -967,7 +973,7 @@ Thank you!
 
       const appointmentData = {
         ...formData,
-        hospitalId,
+        hospitalId: selectedDoctor?.hospitalId?._id || selectedDoctor?.hospitalId || hospitalId,
         date: selectedDate,
         slot: selectedSlot,
         startTime: selectedSlotObj?.startTime || '',
@@ -1283,7 +1289,7 @@ Thank you!
                             type="button"
                             onClick={() => setSelectedSlot(slot.displayTime)}
                             disabled={!slot.selectable}
-                            className={`p-2 rounded-lg border transition-all duration-200 text-sm ${!slot.selectable 
+                            className={`p-2 rounded-lg border transition-all duration-200 text-sm ${!slot.selectable
                               ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                               : selectedSlot === slot.displayTime
                                 ? 'bg-teal-600 text-white border-teal-700 shadow-sm'
@@ -1302,8 +1308,8 @@ Thank you!
                         </svg>
                         <p className="text-sm text-gray-500">No time slots available for this date</p>
                         <p className="text-xs text-gray-400 mt-1">
-                          {isToday(new Date(selectedDate)) 
-                            ? "All available slots for today have passed" 
+                          {isToday(new Date(selectedDate))
+                            ? "All available slots for today have passed"
                             : "Doctor is not available on this day"}
                         </p>
                       </div>
@@ -1319,7 +1325,7 @@ Thank you!
                           </div>
                           <span className="text-sm font-semibold text-teal-800">
                             {selectedSlot}
-                            {availableSlots.find(slot => slot.displayTime === selectedSlot)?.isCurrentSlot && 
+                            {availableSlots.find(slot => slot.displayTime === selectedSlot)?.isCurrentSlot &&
                               " (Current Slot)"}
                           </span>
                         </div>
