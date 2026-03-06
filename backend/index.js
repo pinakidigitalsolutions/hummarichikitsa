@@ -14,12 +14,12 @@ cloudinary.config({
 
 const server = http.createServer(app);
 
+import { ALLOWED_ORIGINS } from './config/constants.js';
+
 // ✅ Socket.io setup
 const io = new Server(server, {
     cors: {
-        origin: process.env.NODE_ENV === 'production'
-            ? 'https://hummarichikitsa.vercel.app'
-            : 'http://localhost:5173',
+        origin: ALLOWED_ORIGINS,
         methods: ["GET", "POST"],
     },
 });

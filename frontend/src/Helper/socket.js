@@ -1,7 +1,5 @@
 import io from "socket.io-client";
-const BASE_URL = "https://hummarichikitsa.onrender.com";
-// const BASE_URL = "http://localhost:5000";
-// const BASE_URL = "https://doctor-appointment-backend-t00j.onrender.com";
-const socket = io(BASE_URL);
+import { SOCKET_URL } from "./constants";
+const socket = io(SOCKET_URL);
 
 export default socket

@@ -1,14 +1,15 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+import {
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import Dashboard from '../../components/Layout/Dashboard';
 import axiosInstance from '../../Helper/axiosInstance';
 
 const AnalyticsDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
     start_date: '',
     end_date: ''
@@ -21,15 +22,17 @@ const AnalyticsDashboard = () => {
 
   const fetchDashboardData = async (startDate = '', endDate = '') => {
     try {
+      setLoading(true);
       const params = {};
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
-      
+
       const res = await axiosInstance.get('/dashboard', { params });
       setDashboardData(res.data.data);
-      const totalRevenu = res.data.data
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,17 +119,36 @@ const AnalyticsDashboard = () => {
   );
 
   // Show loading/empty state
+  if (loading) {
+    return (
+      <Dashboard>
+        <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading analytics...</p>
+          </div>
+        </div>
+      </Dashboard>
+    );
+  }
+
   if (!dashboardData || !chartData) {
     return (
       <Dashboard>
         <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-gray-600">No data available</p>
-            <button 
+          <div className="text-center bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-sm">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Data Available</h3>
+            <p className="text-gray-500 mb-6">We couldn't find any analytics data for the selected period.</p>
+            <button
               onClick={() => fetchDashboardData()}
-              className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
             >
-              Retry
+              Retry Loading
             </button>
           </div>
         </div>
@@ -159,7 +181,7 @@ const AnalyticsDashboard = () => {
                   </p>
                 )}
               </div>
-              
+
               {/* Date Range Filter */}
               <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-4">
                 <div>
@@ -233,7 +255,7 @@ const AnalyticsDashboard = () => {
             />
           </motion.div>
 
-          
+
 
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -268,37 +290,39 @@ const AnalyticsDashboard = () => {
                 </ResponsiveContainer>
               </div>
             </motion.div>
+
+            {/* Appointment Distribution Bar Chart */}
+            <motion.div
+              variants={itemVariants}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Appointment Distribution
+              </h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData.appointmentDistributionData}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`${value}`, 'Appointments']} />
+                    <Legend />
+                    <Bar
+                      dataKey="count"
+                      name="Appointments"
+                      radius={[4, 4, 0, 0]}
+                    >
+                      {chartData.appointmentDistributionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
           </div>
 
-          {/* Appointment Distribution Bar Chart */}
-          <motion.div
-            variants={itemVariants}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Appointment Distribution
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData.appointmentDistributionData}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`${value}`, 'Appointments']} />
-                  <Legend />
-                  <Bar 
-                    dataKey="count" 
-                    name="Appointments"
-                    radius={[4, 4, 0, 0]}
-                  >
-                    {chartData.appointmentDistributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
+
         </motion.div>
       </div>
     </Dashboard>

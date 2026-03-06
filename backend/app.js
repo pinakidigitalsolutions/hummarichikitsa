@@ -6,12 +6,12 @@ const app = express();
 import cors from 'cors'
 app.use('/public', express.static('public'))
 
+import { ALLOWED_ORIGINS } from './config/constants.js';
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  // origin: "http://localhost:5173",
-  // origin: "http://localhost:5173",
-  origin: "https://hummarichikitsa.vercel.app",
+  origin: ALLOWED_ORIGINS,
   credentials: true
 }));
 

@@ -98,8 +98,7 @@ const HospitalSkeleton = () => (
 const Home = () => {
   const navigate = useNavigate();
   const hospital = useSelector((state) => state.hospitals.hospitals);
-  const currentUser = JSON.parse(localStorage.getItem('data')) || null;
-  const isLoggdIn = JSON.parse(localStorage.getItem('isLoggedIn')) || false;
+  const { isLoggedIn, data: currentUser } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const [hospitalsLoading, setHospitalsLoading] = useState(true);
   const [doctorsLoading, setDoctorsLoading] = useState(true);
@@ -208,8 +207,8 @@ const Home = () => {
     } else {
       setHospitalsLoading(false);
     }
-  }, );
-[dispatch, hospital]
+  }, [dispatch, hospital]);
+
   return (
     <Layout>
       <section className="relative bg-gradient-to-r from-blue-900 to-teal-800 text-white py-24">
@@ -275,9 +274,9 @@ const Home = () => {
       </div>
 
       {/* User Appointments Section */}
-      {isLoggdIn && currentUser?.role != 'admin' && (
+      {isLoggedIn && currentUser?.role != 'admin' && (
         <AppointmentsSection
-          isLoggedIn={isLoggdIn}
+          isLoggedIn={isLoggedIn}
           currentUser={currentUser}
           appointments={appointments}
           doctors={doctors}

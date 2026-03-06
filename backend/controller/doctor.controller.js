@@ -343,16 +343,9 @@ export const getDoctorByHospitalId = async (req, res) => {
 
     const doctors = await Doctor.find({ hospitalId }).populate("hospitalId", "name location");
 
-    if (doctors.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No doctors found for this hospital"
-      });
-    }
-
     res.status(200).json({
       success: true,
-      doctors
+      doctors: doctors || []
     });
   } catch (error) {
     console.error('Error fetching doctors by hospital:', error);
