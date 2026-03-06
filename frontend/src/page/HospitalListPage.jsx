@@ -282,7 +282,7 @@ import SkeletonCard from '../components/SkeletonCard';
 const HospitalListPage = () => {
   const navigate = useNavigate();
   const hospitals = useSelector((state) => state.hospitals.hospitals);
-  const { doctors } = useSelector((state) => state?.doctors.doctors);
+  const { doctors, loading: doctorsLoading } = useSelector((state) => state.doctors);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');

@@ -167,10 +167,30 @@ const doctordSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // getAllDoctors
+      .addCase(getAllDoctors.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(getAllDoctors.fulfilled, (state, action) => {
         state.loading = false;
-        state.doctors = action.payload;
+        state.doctors = action.payload.doctors || action.payload;
       })
+      .addCase(getAllDoctors.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // GetDoctorHospitalId
+      .addCase(GetDoctorHospitalId.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(GetDoctorHospitalId.fulfilled, (state, action) => {
+        state.loading = false;
+        state.doctors = action.payload.doctors || action.payload;
+      })
+      .addCase(GetDoctorHospitalId.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   },
 });
 

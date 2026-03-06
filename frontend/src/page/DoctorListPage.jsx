@@ -10,6 +10,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 import hospital_img from '../../src/assets/hospital_image.png';
 import avatar from '../../src/assets/logo-def.png';
 import socket from '../Helper/socket';
+import SkeletonCard from '../components/SkeletonCard';
 const DoctorListPage = () => {
   const navigate = useNavigate();
   const { hospitalId } = useParams();
@@ -17,7 +18,7 @@ const DoctorListPage = () => {
 
   // Redux state
   const hospitals = useSelector((state) => state.hospitals.hospitals);
-  const { doctors, loading: doctorsLoading } = useSelector((state) => state.doctors.doctors);
+  const { doctors, loading: doctorsLoading } = useSelector((state) => state.doctors);
   const { loading: hospitalsLoading } = useSelector((state) => state.hospitals);
   // console.log(doctors)
   // Local state
@@ -78,7 +79,7 @@ const DoctorListPage = () => {
 
   useEffect(() => {
     socket.on("doctorStatusUpdate", (data) => {
-      
+
       dispatch(updateDoctorStatus(data));
     });
 
@@ -91,23 +92,18 @@ const DoctorListPage = () => {
   if (isLoading || hospitalsLoading || doctorsLoading) {
     return (
       <Layout>
-        <div className=" mx-auto px-4 py-8">
+        <div className="mx-auto px-4 py-8">
           {/* Hospital Info Skeleton */}
-          <div className=" rounded-lg shadow-md p-6 mb-8">
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-8 animate-pulse">
             <div className="flex flex-col md:flex-row items-start">
-              <div className="md:w-1/4 mb-4 md:mb-0 md:mr-6">
-                <Skeleton height={150} className="rounded-lg" />
-              </div>
-              <div className="md:w-3/4">
-                <Skeleton width={200} height={30} className="mb-2" />
-                <Skeleton width={300} height={20} className="mb-3" />
-                <div className="flex items-center mb-4">
-                  <Skeleton width={100} height={20} />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} width={80} height={30} />
-                  ))}
+              <div className="md:w-1/3 mb-4 md:mb-0 md:mr-6 h-40 bg-gray-200 rounded-lg"></div>
+              <div className="md:w-2/3 space-y-4">
+                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                <div className="flex gap-2">
+                  <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+                  <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
                 </div>
               </div>
             </div>
@@ -115,30 +111,9 @@ const DoctorListPage = () => {
 
           {/* Doctors List Skeleton */}
           <div className="grid grid-cols-1 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-                <div className="md:flex">
-                  <div className="md:w-1/4 bg-gray-50 flex items-center justify-center p-6">
-                    <Skeleton circle width={160} height={160} />
-                  </div>
-                  <div className="p-6 md:w-3/4">
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start">
-                      <div>
-                        <Skeleton width={180} height={25} className="mb-2" />
-                        <Skeleton width={150} height={20} className="mb-2" />
-                        <Skeleton width={250} height={20} className="mb-2" />
-                        <Skeleton width={120} height={20} className="mb-4" />
-                      </div>
-                      <div className="mt-4 md:mt-0">
-                        <Skeleton width={120} height={60} />
-                      </div>
-                    </div>
-                    <Skeleton count={2} className="mb-6" />
-                    <Skeleton width={200} height={40} />
-                  </div>
-                </div>
-              </div>
-            ))}
+            <SkeletonCard layout="horizontal" />
+            <SkeletonCard layout="horizontal" />
+            <SkeletonCard layout="horizontal" />
           </div>
         </div>
       </Layout>
@@ -295,7 +270,7 @@ const DoctorListPage = () => {
                         {doctor?.deactivationReason && (
                           <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-md mb-3">
                             <p className="text-sm font-medium">
-                               Reason: {doctor.deactivationReason}
+                              Reason: {doctor.deactivationReason}
                             </p>
                           </div>
                         )}
@@ -345,7 +320,7 @@ const DoctorListPage = () => {
                         </span>
                       </div> */}
                       <button
-                      onClick={() => navigate(`/doctors/${doctor._id}`)}
+                        onClick={() => navigate(`/doctors/${doctor._id}`)}
                         disabled={!doctor.status}
                         className={`cursor-pointer w-full sm:w-auto px-6 py-2 rounded-md transition
                             ${doctor.status
