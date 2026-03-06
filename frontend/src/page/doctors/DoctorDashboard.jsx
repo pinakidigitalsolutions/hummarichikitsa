@@ -778,8 +778,8 @@
 // export default DoctorDashboard;
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Calendar, Clock, User, FileText, Search, CheckCircle, XCircle, ChevronRight, Filter, AlertCircle, Download, MoreVertical, Printer, Eye, Edit, Trash2, Phone, MessageSquare, Bell, BarChart3, TrendingUp } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Calendar, Clock, User, FileText, Search, CheckCircle, XCircle, ChevronRight, Filter, AlertCircle, Download, MoreVertical, Printer, Eye, Edit, Trash2, Phone, MessageSquare, Bell, BarChart3, TrendingUp, Plus } from 'lucide-react';
 import { AppointmentConferm, getAllAppointment, todayAppointment } from '../../Redux/appointment';
 import { getAllHospital } from '../../Redux/hospitalSlice';
 import { getAllDoctors, GetDoctorHospitalId } from '../../Redux/doctorSlice';
@@ -808,6 +808,7 @@ const DoctorDashboard = () => {
     };
 
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const [appointments, setAppointments] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
@@ -1281,7 +1282,10 @@ const DoctorDashboard = () => {
         const statusStyle = statusConfig[status] || statusConfig.pending;
 
         return (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div
+                onClick={() => navigate(`/appointment/${appointment?._id}`)}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
+            >
                 <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -1332,16 +1336,12 @@ const DoctorDashboard = () => {
                 </div>
 
                 <div className="flex space-x-2 pt-3 border-t border-gray-100">
-                    <Link to={`/appointment/${appointment?._id}`} className="flex-1">
-                        <button className="w-full px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
-                            <Eye className="h-4 w-4" />
-                            View
-                        </button>
-                    </Link>
+                    {/* View Button Hidden - Entire card is clickable */}
 
                     {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
                         <button
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 if (window.confirm("Update this appointment?")) {
                                     ConfirmAppointment(appointment?._id);
                                 }
@@ -1354,7 +1354,10 @@ const DoctorDashboard = () => {
                     )}
 
                     <button
-                        onClick={() => handleWhatsAppSend(appointment)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleWhatsAppSend(appointment);
+                        }}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 ${appointment?.paymentStatus === 'paid'
                             ? 'bg-green-100 text-green-700 hover:bg-green-200'
                             : 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -1639,11 +1642,5 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
-const Plus = ({ className }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-    </svg>
-);
 
 export default DoctorDashboard;

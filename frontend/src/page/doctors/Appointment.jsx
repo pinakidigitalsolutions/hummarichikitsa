@@ -7,6 +7,9 @@ import { FaUser, FaUserMd, FaCalendarAlt, FaClock, FaMoneyBillWave, FaPhone, FaF
 import { IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io';
 import Dashboard from '../../components/Layout/Dashboard';
 import { IoArrowBackCircle } from "react-icons/io5";
+import axiosInstance from '../../Helper/axiosInstance';
+import toast from 'react-hot-toast';
+import { jsPDF } from 'jspdf';
 const AppointmentDetails = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [appointment, setAppointments] = useState(null);
@@ -48,6 +51,81 @@ Thank you – Hummari Chikitsa
         const message = getFormattedMessage(data);
         const smsUrl = `sms:${targetMobile || data.mobile}?body=${encodeURIComponent(message)}`;
         window.location.href = smsUrl;
+    };
+
+    const handleMarkAsPaid = async () => {
+        try {
+            const res = await axiosInstance.post('/doctor/changeStatus', {
+                appointmentId: appointment._id
+            });
+            if (res.data.success) {
+                toast.success("Payment status updated!");
+                getAppointment(); // Refresh data
+            }
+        } catch (error) {
+            console.error("Error updating payment status:", error);
+            toast.error("Failed to update payment status");
+        }
+    };
+
+    const handleDownloadReceipt = () => {
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFontSize(22);
+        doc.setTextColor(79, 70, 229); // Indigo-600
+        doc.text("Hummari Chikitsa", 105, 20, { align: "center" });
+
+        doc.setFontSize(14);
+        doc.setTextColor(100);
+        doc.text("Appointment Receipt", 105, 30, { align: "center" });
+
+        doc.setLineWidth(0.5);
+        doc.line(20, 35, 190, 35);
+
+        // Appointment Info
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`Token Number: ${appointment?.token}`, 20, 50);
+        doc.text(`Appointment Number: ${appointment?.appointmentNumber}`, 120, 50);
+        doc.text(`Date: ${appointment?.date}`, 20, 60);
+        doc.text(`Slot: ${appointment?.slot}`, 120, 60);
+
+        doc.line(20, 65, 190, 65);
+
+        // Patient Info
+        doc.setFontSize(14);
+        doc.text("Patient Details", 20, 75);
+        doc.setFontSize(12);
+        doc.text(`Name: ${appointment?.patient}`, 20, 85);
+        doc.text(`Contact: ${appointment?.mobile}`, 20, 95);
+
+        // Doctor & Hospital Info
+        doc.setFontSize(14);
+        doc.text("Medical Details", 20, 110);
+        doc.setFontSize(12);
+        doc.text(`Doctor: ${appointment?.doctorId?.name}`, 20, 120);
+        doc.text(`Specialty: ${appointment?.doctorId?.specialty}`, 20, 130);
+        doc.text(`Hospital: ${appointment?.hospitalId?.name}`, 20, 140);
+        doc.text(`Location: ${appointment?.hospitalId?.city}`, 20, 150);
+
+        doc.line(20, 155, 190, 155);
+
+        // Payment Info
+        doc.setFontSize(14);
+        doc.text("Payment Summary", 20, 165);
+        doc.setFontSize(12);
+        doc.text(`Amount Paid: Rs. ${appointment?.booking_amount}`, 20, 175);
+        doc.text(`Payment Status: ${appointment?.paymentStatus}`, 20, 185);
+        doc.text(`Payment Method: ${appointment?.paymentMethod || 'Cash'}`, 20, 195);
+
+        // Footer
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text("This is a computer-generated receipt.", 105, 250, { align: "center" });
+        doc.text("https://hummarichikitsa.vercel.app", 105, 255, { align: "center" });
+
+        doc.save(`Receipt_AP-${appointment?.token}.pdf`);
     };
     const colors = {
         primary: '#4f46e5',       // Vibrant indigo
@@ -170,14 +248,22 @@ Thank you – Hummari Chikitsa
                                 <div>
                                     <h1 className="text-2xl font-bold">Appointment Details</h1>
                                     <p className="text-indigo-100 mt-1 text-sm">Token No: {appointment?.token}</p>
-                                    <div onClick={() => {
-                                        setwhatsaapMessage(appointment)
-                                        setTargetMobile(appointment?.mobile || '')
-                                        setIsOpen(true)
-                                    }
-                                    }
-                                        className='bg-green-100 text-center mt-2 text-green-700 cursor-pointer py-1 px-2  rounded'>
-                                        send Appointment
+                                    <div className="flex gap-2">
+                                        <div onClick={() => {
+                                            setwhatsaapMessage(appointment)
+                                            setTargetMobile(appointment?.mobile || '')
+                                            setIsOpen(true)
+                                        }}
+                                            className='flex-1 bg-green-100 text-center mt-2 text-green-700 cursor-pointer py-1 px-2 rounded text-xs font-medium hover:bg-green-200 transition-colors'>
+                                            Send Details
+                                        </div>
+                                        <div onClick={handleMarkAsPaid}
+                                            className={`flex-1 text-center mt-2 cursor-pointer py-1 px-2 rounded text-xs font-medium transition-colors ${appointment?.paymentStatus === 'paid'
+                                                ? 'bg-green-600 text-white cursor-default'
+                                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                }`}>
+                                            {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${appointment?.status === 'confirmed'
@@ -306,26 +392,28 @@ Thank you – Hummari Chikitsa
                         </motion.div>
                     </div>
 
-                    {/* Action Buttons - Now with consistent styling */}
-                    {/* <div className="flex justify-end space-x-4">
-                    {appointment?.status === 'confirmed' && (
+                    <div className="flex justify-end space-x-4 mt-6">
                         <motion.button
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.98 }}
-                            className="flex items-center px-6 py-2 rounded-lg font-medium border border-red-500 text-red-500 hover:bg-red-50 transition-colors"
+                            onClick={handleMarkAsPaid}
+                            className={`flex items-center px-6 py-2 rounded-lg font-medium transition-colors ${appointment?.paymentStatus === 'paid'
+                                ? 'bg-green-600 text-white cursor-default'
+                                : 'bg-red-600 text-white hover:bg-red-700'
+                                }`}
                         >
-                            Cancel Appointment
+                            {appointment?.paymentStatus === 'paid' ? 'Confirmed Paid' : 'Mark as Paid'}
                         </motion.button>
-                    )}
-                    <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="flex items-center px-6 py-2 rounded-lg font-medium border border-indigo-500 text-indigo-500 hover:bg-indigo-50 transition-colors"
-                    >
-                        <FaDownload className="mr-2" />
-                        Download Receipt
-                    </motion.button>
-                </div> */}
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleDownloadReceipt}
+                            className="flex items-center px-6 py-2 rounded-lg font-medium border border-indigo-500 text-indigo-500 hover:bg-indigo-50 transition-colors"
+                        >
+                            <FaDownload className="mr-2" />
+                            Download Receipt
+                        </motion.button>
+                    </div>
                 </motion.div>
             </div>
         </Dashboard>

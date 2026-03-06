@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, FileText, Search, CheckCircle, XCircle, ChevronRight, Filter, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppointmentConferm, getAllAppointment, todayAppointment } from '../../Redux/appointment';
@@ -13,6 +13,7 @@ import { AuthMe } from '../../Redux/AuthLoginSlice';
 
 const StaffDasboard = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -22,7 +23,7 @@ const StaffDasboard = () => {
 
   const { isLoggedIn, data } = useSelector((store) => store.LoginAuth || {});
   const currentUser = data?.user || {};
-  
+
   // Use ref for filter dropdown
   const filterRef = useRef(null);
 
@@ -104,7 +105,7 @@ const StaffDasboard = () => {
   // Socket.io event handlers
   useEffect(() => {
     const handleAppointmentUpdate = (data) => {
-      
+
       setAppointments(prev => {
         const exists = prev.some(a => a._id === data._id);
         if (exists) {
@@ -138,16 +139,16 @@ const StaffDasboard = () => {
     const res = await axiosInstance.put(`/doctor/${currentUser?.data?._id}/active/doctor`)
     localStorage.setItem("data", JSON.stringify(res?.data?.getDoctor));
     setactive(res?.data?.getDoctor?.active)
-    
+
   }
 
   useEffect(() => {
-   (async()=>{
-    const res = await dispatch(AuthMe());
-   setactive(res.payload.user.active)
-   })()
+    (async () => {
+      const res = await dispatch(AuthMe());
+      setactive(res.payload.user.active)
+    })()
   }, []);
-   
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -336,7 +337,7 @@ const StaffDasboard = () => {
             className="bg-white rounded-xl shadow-sm overflow-visible"
           >
             {/* Card Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative"> 
+            <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
               <div>
                 <div className="flex items-center space-x-2 mr-4">
                   <span className="relative flex h-3 w-3">
@@ -401,7 +402,7 @@ const StaffDasboard = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-xl z-[100] border border-gray-200"
-                        // Mobile view ke liye fixed positioning hatayi aur normal absolute rakha
+                      // Mobile view ke liye fixed positioning hatayi aur normal absolute rakha
                       >
                         <div className="py-1 max-h-60 overflow-y-auto"> {/* Scroll agar options zyada ho */}
                           {filterOptions.map((option) => (
@@ -455,7 +456,8 @@ const StaffDasboard = () => {
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
                               transition={{ duration: 0.3 }}
-                              className="bg-white rounded-lg shadow border p-4"
+                              onClick={() => navigate(`/appointment/${appointment?._id}`)}
+                              className="bg-white rounded-lg shadow border p-4 cursor-pointer hover:shadow-md transition-shadow"
                             >
                               {/* Patient Info */}
                               <div className="flex justify-between items-start mb-3">
@@ -498,19 +500,11 @@ const StaffDasboard = () => {
                               </div>
 
                               {/* Actions */}
-                              <div className="flex space-x-2 pt-2">
-                                <Link to={`/appointment/${appointment?._id}`} className="flex-1">
-                                  <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors border border-blue-200"
-                                  >
-                                    View Details
-                                  </motion.button>
-                                </Link>
+                              <div className="flex space-x-2 pt-2 border-t border-gray-50">
                                 {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
                                   <motion.button
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       if (window.confirm("Are you sure you want to update this appointment?")) {
                                         ConfirmAppointment(appointment?._id);
                                       }
@@ -519,9 +513,9 @@ const StaffDasboard = () => {
                                     whileTap={{ scale: 0.98 }}
                                     className="flex-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors border border-green-200"
                                   >
-                                    {appointment.status === 'check-in' ? 'Check-in' : 
-                                     appointment.status === 'confirmed' ? 'Complete' : 
-                                     'Confirm'}
+                                    {appointment.status === 'check-in' ? 'Check-in' :
+                                      appointment.status === 'confirmed' ? 'Complete' :
+                                        'Confirm'}
                                   </motion.button>
                                 )}
                               </div>
@@ -657,9 +651,9 @@ const StaffDasboard = () => {
                                           whileTap={{ scale: 0.95 }}
                                           className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors border border-green-200"
                                         >
-                                          {appointment.status === 'check-in' ? 'Check-in' : 
-                                           appointment.status === 'confirmed' ? 'Complete' : 
-                                           'Confirm'}
+                                          {appointment.status === 'check-in' ? 'Check-in' :
+                                            appointment.status === 'confirmed' ? 'Complete' :
+                                              'Confirm'}
                                         </motion.button>
                                       )}
                                     </div>

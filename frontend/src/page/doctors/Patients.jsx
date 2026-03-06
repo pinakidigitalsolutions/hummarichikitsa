@@ -4,11 +4,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppointmentConferm, getAllAppointment } from '../../Redux/appointment';
 import { Calendar, Clock, User, Search, CheckCircle, XCircle, CircleCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns';
-import { data, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Patients = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +31,7 @@ const Patients = () => {
     };
 
     const appointments = useSelector((state) => state.appointment?.appointment);
-    
+
     // Process appointments by date
     useEffect(() => {
         if (appointments?.length) {
@@ -54,14 +55,12 @@ const Patients = () => {
             }
         };
         if (!appointments || appointments.length === 0) {
-
             fetchData();
         }
     }, [dispatch]);
 
     // Filter appointments based on search and selected date
     const filteredAppointments = appointments?.filter(appointment => {
-        // Search term conditions from both filters
         const matchesSearch =
             appointment._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (appointment.patientId?.name && appointment.patientId.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -69,7 +68,6 @@ const Patients = () => {
             appointment.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             appointment.mobile?.toLowerCase().includes(searchTerm.toLowerCase());
 
-        // Date condition from first filter
         const matchesDate = selectedDate ? isSameDay(new Date(appointment.date), new Date(selectedDate)) : true;
 
         return matchesSearch && matchesDate;
@@ -84,8 +82,6 @@ const Patients = () => {
         for (let date = startDate; date <= endDate; date.setDate(date.getDate() + 1)) {
             days.push(new Date(date));
         }
-
-
         return days;
     };
 
@@ -105,47 +101,23 @@ const Patients = () => {
         show: { opacity: 1, y: 0 }
     };
 
-    const statusBadgeVariants = {
-        confirmed: { backgroundColor: colors.accent },
-        booked: { backgroundColor: colors.warning },
-        cancelled: { backgroundColor: colors.danger },
-        completed: { backgroundColor: colors.primary }
-    };
-
     const ConfirmAppointment = async (appointment_id) => {
         await dispatch(AppointmentConferm(appointment_id));
         await dispatch(getAllAppointment());
     };
 
-
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 2000);
-
-        return () => clearTimeout(timer); // cleanup
-    }, []);
     return (
         <Dashboard>
-
-
             <motion.div
                 initial="hidden"
                 animate="show"
                 variants={containerVariants}
-                className="space-y-6 p-6"
+                className="space-y-6 p-4 sm:p-6"
                 style={{ backgroundColor: colors.background, minHeight: '100vh' }}
             >
                 {/* Date Filter Section */}
-
                 {isDateFilterOpen && (
-                    <motion.div
-                        variants={itemVariants}
-
-                    >
+                    <motion.div variants={itemVariants}>
                         <motion.div
                             variants={itemVariants}
                             className="bg-white rounded-xl shadow-sm p-6 transition-all hover:shadow-md"
@@ -257,24 +229,10 @@ const Patients = () => {
                                 )}
                             </AnimatePresence>
                         </motion.div>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="mt-4 px-3 py-1 rounded-md"
-                            style={{
-                                backgroundColor: `${colors.danger}10`,
-                                color: colors.danger
-                            }}
-                            onClick={() => setIsDateFilterOpen(false)}
-                        >
-                            Close
-                        </motion.button>
                     </motion.div>
                 )}
 
-
-
-                {/* Appointments Table */}
+                {/* Appointments List Section */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-white rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md"
@@ -290,9 +248,9 @@ const Patients = () => {
                             }}
                             onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
                         >
-                            Filter by Date
+                            {isDateFilterOpen ? 'Hide Calendar' : 'Filter by Date'}
                         </motion.button>
-                        <h2 className="text-xl font-semibold" style={{ color: colors.text }}>
+                        <h2 className="text-xl font-semibold text-center flex-1" style={{ color: colors.text }}>
                             {selectedDate
                                 ? `Appointments on ${format(new Date(selectedDate), 'MMMM d, yyyy')}`
                                 : "All Patient Appointments"}
@@ -306,8 +264,7 @@ const Patients = () => {
                                 placeholder="Search by ID or name..."
                                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm"
                                 style={{
-                                    borderColor: colors.muted,
-                                    focusRingColor: colors.primary
+                                    borderColor: colors.muted
                                 }}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -320,7 +277,7 @@ const Patients = () => {
                     </div>
 
                     {isLoading ? (
-                        <div className="p-8 flex justify-center">
+                        <div className="p-12 flex justify-center">
                             <motion.div
                                 animate={{ rotate: 360 }}
                                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -329,164 +286,194 @@ const Patients = () => {
                             />
                         </div>
                     ) : (
+                        <div className="w-full">
+                            {/* Mobile Card View */}
+                            <div className="md:hidden space-y-4 p-4">
+                                {filteredAppointments?.length > 0 ? (
+                                    filteredAppointments.map((appointment) => (
+                                        <div
+                                            key={appointment._id}
+                                            onClick={() => navigate(`/appointment/${appointment?._id}`)}
+                                            className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                                        >
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center">
+                                                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                        <User className="h-5 w-5" style={{ color: colors.primary }} />
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <div className="font-medium text-gray-900">
+                                                            {appointment.patient || `Patient ${appointment._id.slice(-4)}`}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            ID: {appointment._id.slice(-6)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                                                    #{appointment.token}
+                                                </div>
+                                            </div>
 
-                        <div className="overflow-auto rounded-xl" style={{ maxHeight: '630px' }}>
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50 sticky top-0 z-10">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Patient</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Time</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Token</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Payment</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    <AnimatePresence>
-                                        {filteredAppointments?.length > 0 ? (
-                                            filteredAppointments.map((appointment) => {
-                                                let finalStatus;
-                                                if (appointment.status === "completed") {
-                                                    finalStatus = "Completed";
-                                                } else {
-                                                    const today = new Date();
-                                                    today.setHours(0, 0, 0, 0);
+                                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                                <div>
+                                                    <div className="text-gray-500 text-[10px] uppercase font-bold">Time & Slot</div>
+                                                    <div className="text-sm font-medium text-gray-700">{appointment.slot}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-gray-500 text-[10px] uppercase font-bold">Date</div>
+                                                    <div className="text-sm font-medium text-gray-700">
+                                                        {format(new Date(appointment.date), 'MMM d, yyyy')}
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                                    const appointmentDate = new Date(appointment.date);
-                                                    appointmentDate.setHours(0, 0, 0, 0);
+                                            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                                <div className="flex items-center gap-2">
+                                                    {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (window.confirm("Complete this appointment?")) {
+                                                                    ConfirmAppointment(appointment?._id);
+                                                                }
+                                                            }}
+                                                            className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold shadow-sm"
+                                                        >
+                                                            Complete
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`text-[10px] uppercase font-bold mb-1 ${appointment.paymentStatus === 'completed' || appointment.paymentStatus === 'paid' ? 'text-green-500' : 'text-yellow-500'}`}>
+                                                        {appointment.paymentStatus || 'pending'}
+                                                    </span>
+                                                    <div className="text-xs font-bold text-gray-900">₹{appointment.booking_amount || 0}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                        <Calendar className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                                        <p className="text-gray-500">No appointments found</p>
+                                    </div>
+                                )}
+                            </div>
 
-                                                    finalStatus = appointmentDate >= today ? "Active" : "Inactive";
-                                                }
-                                                return (
-                                                    <motion.tr
-                                                        key={appointment._id}
-                                                        initial={{ opacity: 0, y: 10 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        exit={{ opacity: 0 }}
-                                                        transition={{ duration: 0.3 }}
-                                                        className="hover:bg-gray-50"
-                                                    >
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="flex items-center">
-                                                                <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20` }}>
-                                                                    <User className="h-5 w-5" style={{ color: colors.primary }} />
-                                                                </div>
-                                                                <div className="ml-4">
-                                                                    <div className="text-sm font-medium" style={{ color: colors.text }}>
-                                                                        {appointment.patient || `Patient ${appointment._id.slice(-4)}`}
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-auto" style={{ maxHeight: '630px' }}>
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50 sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Patient</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Time</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Token</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Payment</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        <AnimatePresence>
+                                            {filteredAppointments?.length > 0 ? (
+                                                filteredAppointments.map((appointment) => {
+                                                    let finalStatus;
+                                                    if (appointment.status === "completed") {
+                                                        finalStatus = "Completed";
+                                                    } else {
+                                                        const today = new Date();
+                                                        today.setHours(0, 0, 0, 0);
+                                                        const appointmentDate = new Date(appointment.date);
+                                                        appointmentDate.setHours(0, 0, 0, 0);
+                                                        finalStatus = appointmentDate >= today ? "Active" : "Inactive";
+                                                    }
+                                                    return (
+                                                        <motion.tr
+                                                            key={appointment._id}
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0 }}
+                                                            transition={{ duration: 0.3 }}
+                                                            className="hover:bg-gray-50 cursor-pointer"
+                                                            onClick={() => navigate(`/appointment/${appointment?._id}`)}
+                                                        >
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="flex items-center">
+                                                                    <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20` }}>
+                                                                        <User className="h-5 w-5" style={{ color: colors.primary }} />
                                                                     </div>
-                                                                    <div className="text-xs" style={{ color: colors.muted }}>
-                                                                        ID: {appointment._id.slice(-6)}
+                                                                    <div className="ml-4">
+                                                                        <div className="text-sm font-medium" style={{ color: colors.text }}>
+                                                                            {appointment.patient || `Patient ${appointment._id.slice(-4)}`}
+                                                                        </div>
+                                                                        <div className="text-xs" style={{ color: colors.muted }}>
+                                                                            ID: {appointment._id.slice(-6)}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-medium" style={{ color: colors.text }}>{appointment.slot}</div>
-                                                            <div className="text-xs" style={{ color: colors.muted }}>
-                                                                {format(new Date(appointment.date), 'MMM d, yyyy')}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-medium" style={{ color: colors.text }}>{appointment.token}</div>
-
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <motion.span
-                                                                className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${finalStatus === 'Active'
-                                                                    ? 'bg-green-100 text-green-800'
-                                                                    : finalStatus === 'completed'
-                                                                        ? 'bg-yellow-100 text-yellow-800'
-                                                                        : finalStatus === 'Inactive'
-                                                                            ? 'bg-red-100 text-red-800'
-                                                                            : 'bg-blue-100 text-blue-800'
-                                                                    }`}
-                                                                initial={{ opacity: 0, scale: 0.8 }}
-                                                                animate={{
-                                                                    opacity: 1,
-                                                                    scale: 1,
-                                                                    transition: { type: 'spring', stiffness: 300 }
-                                                                }}
-                                                                whileHover={{ scale: 1.05 }}
-                                                                whileTap={{ scale: 0.95 }}
-                                                            >
-                                                                {finalStatus.charAt(0).toUpperCase() + finalStatus.slice(1)}
-                                                            </motion.span>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                            ${appointment.paymentStatus === 'completed'
-                                                                    ? 'bg-green-100 text-green-800'
-                                                                    : 'bg-yellow-100 text-yellow-800'
-                                                                }`}>
-                                                                {appointment.paymentStatus.charAt(0).toUpperCase() + appointment.paymentStatus.slice(1)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                            <Link to={`/appointment/${appointment?._id}`}>
-                                                                <motion.button
-                                                                    whileHover={{ scale: 1.05 }}
-                                                                    whileTap={{ scale: 0.95 }}
-                                                                    className="px-3 py-1 rounded-lg"
-                                                                    style={{
-                                                                        backgroundColor: `${colors.primary}20`,
-                                                                        color: colors.primary
-                                                                    }}
-                                                                >
-                                                                    View Details
-                                                                </motion.button>
-                                                            </Link>
-
-                                                            {
-                                                                appointment.status !== 'completed' && (
-                                                                    <motion.button
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm font-medium" style={{ color: colors.text }}>{appointment.slot}</div>
+                                                                <div className="text-xs" style={{ color: colors.muted }}>
+                                                                    {format(new Date(appointment.date), 'MMM d, yyyy')}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm font-medium" style={{ color: colors.text }}>{appointment.token}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${finalStatus === 'Active' ? 'bg-green-100 text-green-800' :
+                                                                    finalStatus === 'Completed' ? 'bg-blue-100 text-blue-800' :
+                                                                        'bg-red-100 text-red-800'
+                                                                    }`}>
+                                                                    {finalStatus}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${appointment.paymentStatus === 'completed' || appointment.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                                                    }`}>
+                                                                    {appointment.paymentStatus || 'Pending'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+                                                                <Link to={`/appointment/${appointment?._id}`}>
+                                                                    <button
+                                                                        className="px-3 py-1 rounded-lg mr-2"
+                                                                        style={{ backgroundColor: `${colors.primary}20`, color: colors.primary }}
+                                                                    >
+                                                                        View Details
+                                                                    </button>
+                                                                </Link>
+                                                                {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
+                                                                    <button
                                                                         onClick={() => {
-                                                                            if (window.confirm("Are you sure you want to mark this appointment as completed?")) {
+                                                                            if (window.confirm("Complete this appointment?")) {
                                                                                 ConfirmAppointment(appointment?._id);
                                                                             }
                                                                         }}
-                                                                        whileHover={{ scale: 1.05 }}
-                                                                        whileTap={{ scale: 0.95 }}
-                                                                        className="px-3 py-1 rounded-lg mr-2"
-                                                                        style={{
-                                                                            backgroundColor: `${colors.primary}20`,
-                                                                            color: colors.primary
-                                                                        }}
+                                                                        className="px-3 py-1 rounded-lg"
+                                                                        style={{ backgroundColor: `${colors.accent}20`, color: colors.accent }}
                                                                     >
                                                                         Complete
-                                                                    </motion.button>
-                                                                )
-                                                            }
-                                                        </td>
-                                                    </motion.tr>
-                                                )
-                                            }
-                                            )
-                                        ) : (
-                                            <motion.tr
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
-                                            >
-                                                <td colSpan="5" className="px-6 py-12 text-center">
-                                                    <div className="flex flex-col items-center justify-center">
-                                                        <Calendar className="h-12 w-12 mb-4" style={{ color: colors.muted }} />
-                                                        <h3 className="text-lg font-medium mb-1" style={{ color: colors.text }}>
-                                                            No appointments found
-                                                        </h3>
-                                                        <p className="text-sm" style={{ color: colors.muted }}>
-                                                            {searchTerm ? 'Try a different search term' : 'No appointments scheduled'}
-                                                        </p>
-                                                    </div>
-                                                </td>
-                                            </motion.tr>
-                                        )}
-                                    </AnimatePresence>
-                                </tbody>
-                            </table>
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                        </motion.tr>
+                                                    );
+                                                })
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                                                        No appointments found
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </AnimatePresence>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-
                     )}
                 </motion.div>
             </motion.div>
