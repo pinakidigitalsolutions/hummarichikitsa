@@ -5,6 +5,7 @@ import appointment from './appointment';
 import authSlice from './authSlice'
 import LoginAuthSlice from './AuthLoginSlice'
 import availabilityReducer from './availabilitySlice'
+import dashboardReducer from './dashboardSlice';
  const store = configureStore({
   reducer: {
     auth:authSlice,
@@ -13,6 +14,7 @@ import availabilityReducer from './availabilitySlice'
     appointment:appointment,
     LoginAuth:LoginAuthSlice,
     availability:availabilityReducer,
+    dashboard:dashboardReducer,
   },
 });
 export default store;

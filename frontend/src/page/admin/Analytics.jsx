@@ -1,95 +1,95 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
-import Dashboard from '../../components/Layout/Dashboard';
-import axiosInstance from '../../Helper/axiosInstance';
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+
+import Dashboard from "../../components/Layout/Dashboard";
+import { useDispatch, useSelector } from "react-redux";
+import { getDashboardData } from "../../Redux/dashboardSlice";
 
 const AnalyticsDashboard = () => {
-  const colors = { primary: '#0d9488' };
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+
+  const { dashboard, loading } = useSelector((state) => state.dashboard);
+
+  const dashboardData = dashboard;
+
   const [dateRange, setDateRange] = useState({
-    start_date: '',
-    end_date: ''
+    start_date: "",
+    end_date: "",
   });
 
-  // Initial data fetch
+  const colors = { primary: "#0d9488" };
+
+  // first load
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async (startDate = '', endDate = '') => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
-
-      const res = await axiosInstance.get('/dashboard', { params });
-      setDashboardData(res.data.data);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
+    if (!dashboard) {
+      dispatch(getDashboardData());
     }
-  };
+  }, [dashboard, dispatch]);
 
+  // filter
   const handleDateFilter = () => {
     if (dateRange.start_date && dateRange.end_date) {
-      fetchDashboardData(dateRange.start_date, dateRange.end_date);
+      dispatch(
+        getDashboardData({
+          start_date: dateRange.start_date,
+          end_date: dateRange.end_date,
+        })
+      );
     }
   };
 
   const handleClearFilter = () => {
-    setDateRange({ start_date: '', end_date: '' });
-    fetchDashboardData();
+    setDateRange({ start_date: "", end_date: "" });
+    dispatch(getDashboardData());
   };
 
-  // Prepare chart data from actual API response
+  // charts
   const chartData = useMemo(() => {
     if (!dashboardData) return null;
 
-    const { total_appointments, today_appointments, completed_appointments, check_in_appointments, confirmed_appointments, total_revenue, revenue_by_status } = dashboardData;
-
-    // Status distribution for pie chart
-    const appointmentStatusData = [
-      { name: 'Completed', value: completed_appointments, color: '#10B981' },
-      { name: 'Check-in', value: check_in_appointments, color: '#3B82F6' },
-      { name: 'Confirmed', value: confirmed_appointments, color: '#F59E0B' },
-    ];
-
-    // Revenue by status for bar chart
-    const revenueData = [
-      { name: 'Check-in', revenue: revenue_by_status.check_in, color: '#3B82F6' },
-      { name: 'Confirmed', revenue: revenue_by_status.confirmed, color: '#F59E0B' },
-      { name: 'Completed', revenue: revenue_by_status.completed, color: '#10B981' },
-    ];
-
-    // Appointment distribution for bar chart
-    const appointmentDistributionData = [
-      { name: 'Total', count: total_appointments, color: '#6366F1' },
-      { name: 'Today', count: today_appointments, color: '#8B5CF6' },
-      { name: 'Completed', count: completed_appointments, color: '#10B981' },
-    ];
+    const {
+      total_appointments,
+      today_appointments,
+      completed_appointments,
+      check_in_appointments,
+      confirmed_appointments,
+      total_revenue,
+      revenue_by_status,
+    } = dashboardData;
 
     return {
-      appointmentStatusData,
-      revenueData,
-      appointmentDistributionData,
+      appointmentStatusData: [
+        { name: "Completed", value: completed_appointments, color: "#10B981" },
+        { name: "Check-in", value: check_in_appointments, color: "#3B82F6" },
+        { name: "Confirmed", value: confirmed_appointments, color: "#F59E0B" },
+      ],
+
+      appointmentDistributionData: [
+        { name: "Total", count: total_appointments, color: "#6366F1" },
+        { name: "Today", count: today_appointments, color: "#8B5CF6" },
+        { name: "Completed", count: completed_appointments, color: "#10B981" },
+      ],
     };
   }, [dashboardData]);
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
+      transition: { staggerChildren: 0.1 },
     },
   };
 
@@ -98,23 +98,20 @@ const AnalyticsDashboard = () => {
     visible: {
       y: 0,
       opacity: 1,
-      transition: {
-        type: 'spring',
-        stiffness: 100,
-      },
+      transition: { type: "spring", stiffness: 100 },
     },
   };
 
-  // KPI Cards Component
-  const KPICard = ({ title, value, color, prefix = '', suffix = '' }) => (
+  const KPICard = ({ title, value, color, prefix = "" }) => (
     <motion.div
       variants={itemVariants}
-      className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-300"
-      whileHover={{ y: -2 }}
+      className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
     >
       <h3 className="text-gray-600 text-sm font-medium mb-2">{title}</h3>
-      <p className={`text-2xl font-bold text-${color}-600 mb-1`}>
-        {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
+
+      <p className={`text-2xl font-bold text-${color}-600`}>
+        {prefix}
+        {typeof value === "number" ? value.toLocaleString() : value}
       </p>
     </motion.div>
   );
@@ -132,35 +129,12 @@ const AnalyticsDashboard = () => {
               style={{ borderColor: colors.primary }}
             />
           </div>
-          <p className="text-gray-600 font-medium mt-4">Loading analytics...</p>
         </div>
       </Dashboard>
     );
   }
 
-  if (!dashboardData || !chartData) {
-    return (
-      <Dashboard>
-        <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-          <div className="text-center bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-sm">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Data Available</h3>
-            <p className="text-gray-500 mb-6">We couldn't find any analytics data for the selected period.</p>
-            <button
-              onClick={() => fetchDashboardData()}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
-            >
-              Retry Loading
-            </button>
-          </div>
-        </div>
-      </Dashboard>
-    );
-  }
+  if (!dashboardData || !chartData) return null;
 
   return (
     <Dashboard>
