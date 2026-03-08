@@ -300,7 +300,8 @@ export const getAllDashboard = async (req, res) => {
 // Update appointment status
 export const updateAppointmentStatus = async (req, res) => {
     try {
-        const user = req.user
+        const user = req.user;
+        const userId = user?._id || user?.id;
         const { id } = req.params;
         var status = null;
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -311,13 +312,22 @@ export const updateAppointmentStatus = async (req, res) => {
         //     return res.status(400).json({ message: "Invalid status value" });
         // }
 
-        const doctor = await doctorNodel.findById(user.id)
+        // Doctor-specific availability guard
+        if (user?.role === "doctor") {
+            const doctor = await doctorNodel.findById(userId).select("active");
+            if (!doctor) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Doctor not found"
+                });
+            }
 
-        if (!doctor.active) {
-            return res.status(200).json({
-                success: false,
-                message: "Doctor inactive"
-            })
+            if (!doctor.active) {
+                return res.status(200).json({
+                    success: false,
+                    message: "Doctor inactive"
+                });
+            }
         }
 
         const appointment = await apponitment.findById(id);
