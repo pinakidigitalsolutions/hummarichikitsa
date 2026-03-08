@@ -1755,7 +1755,8 @@ export const changeStatus = async(req,res)=>{
         })
       }
       const appointment = await apponitment.findById(appointmentId);
-      appointment.paymentStatus='paid'
+      appointment.paymentStatus='paid';
+      // appointment.amount = appointment.paymentAmount || appointment.booking_amount;
       await appointment.save();
 
       return res.status(200).json({

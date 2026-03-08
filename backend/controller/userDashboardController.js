@@ -70,34 +70,38 @@ export const getUserDashboardData = async (req, res) => {
         status: 'confirmed'
     }),
 
-    // ✅ Total revenue (Only Paid)
+    // Total revenue (include both legacy + current paid statuses)
     apponitment.aggregate([
         {
             $match: {
                 ...finalQuery,
-                paymentStatus: "paid"   // <- Only include paid revenue
+                paymentStatus: { $in: ["paid", "completed"] }
             }
         },
         {
             $group: {
                 _id: null,
-                totalRevenue: { $sum: "$amount" }
+                totalRevenue: {
+                    $sum: { $ifNull: ["$amount", "$booking_amount"] }
+                }
             }
         }
     ]),
 
-    // ✅ Revenue by status (Only Paid)
+    // Revenue by appointment status for paid appointments
     apponitment.aggregate([
         {
             $match: {
                 ...finalQuery,
-                paymentStatus: "paid"  // <- Only paid
+                paymentStatus: { $in: ["paid", "completed"] }
             }
         },
         {
             $group: {
                 _id: "$status",
-                revenue: { $sum: "$amount" }
+                revenue: {
+                    $sum: { $ifNull: ["$amount", "$booking_amount"] }
+                }
             }
         }
     ])

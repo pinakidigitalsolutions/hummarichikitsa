@@ -364,7 +364,7 @@ const Patients = () => {
                             </div>
 
                             {/* Desktop Table View */}
-                            <div className="hidden md:block overflow-auto" style={{ maxHeight: '630px' }}>
+                            <div className="hidden md:block overflow-auto max-h-[85vh]">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50 sticky top-0 z-10">
                                         <tr>

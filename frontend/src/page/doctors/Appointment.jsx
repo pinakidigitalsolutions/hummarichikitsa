@@ -21,12 +21,21 @@ const AppointmentDetails = () => {
     const navigate = useNavigate()
 
     const getFormattedMessage = (data) => {
+        const timeSlot =
+            data?.slot ||
+            (data?.startTime && data?.endTime
+                ? `${data.startTime} - ${data.endTime}`
+                : "");
         return `
 Hello ${data.patient}, your appointment is confirmed.
 
+Hospital: ${data?.hospitalId?.name}
 Appointment No: ${data.appointmentNumber}
 Token: ${data.token}
+
 Date: ${data.date}
+Time: ${timeSlot}
+
 Booking Amount: ₹${data.booking_amount}
 Payment: ${data.paymentStatus}
 
@@ -274,23 +283,7 @@ Thank you – Hummari Chikitsa
                                     <div>
                                         <h1 className="text-2xl font-bold">Appointment Details</h1>
                                         <p className="text-indigo-100 mt-1 text-sm">Token No: {appointment?.token}</p>
-                                        <div className="flex gap-2">
-                                            <div onClick={() => {
-                                                setwhatsaapMessage(appointment)
-                                                setTargetMobile(appointment?.mobile || '')
-                                                setIsOpen(true)
-                                            }}
-                                                className='flex-1 bg-green-100 text-center mt-2 text-green-700 cursor-pointer py-1 px-2 rounded text-xs font-medium hover:bg-green-200 transition-colors'>
-                                                Send Details
-                                            </div>
-                                            <div onClick={handleMarkAsPaid}
-                                                className={`flex-1 text-center mt-2 cursor-pointer py-1 px-2 rounded text-xs font-medium transition-colors ${appointment?.paymentStatus === 'paid'
-                                                    ? 'bg-green-600 text-white cursor-default'
-                                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
-                                                    }`}>
-                                                {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
-                                            </div>
-                                        </div>
+                                       
                                     </div>
                                     <div className={`flex items-center px-3 py-1 rounded-full text-sm font-medium ${appointment?.status === 'confirmed'
                                         ? 'bg-green-100 text-green-800'
@@ -302,6 +295,36 @@ Thank you – Hummari Chikitsa
                                         {appointment?.status.charAt(0).toUpperCase() + appointment?.status.slice(1)}
                                     </div>
                                 </div>
+                                 <div className="flex gap-2 mt-2">
+                                            <div onClick={() => {
+                                                setwhatsaapMessage(appointment)
+                                                setTargetMobile(appointment?.mobile || '')
+                                                setIsOpen(true)
+                                            }}
+                                                className='flex items-center px-6 py-2 rounded-lg font-medium transition-colors bg-blue-300 text-blue-900 hover:bg-blue-400 cursor-pointer'>
+                                                Send Details
+                                            </div>
+                                            {appointment?.paymentStatus === 'paid' ? (
+                                                <span className="flex items-center px-2 py-2 font-medium text-green-200">
+                                                    Paid
+                                                </span>
+                                            ) : (
+                                                <motion.button
+                                                    
+                                                    onClick={handleMarkAsPaid}
+                                                    className="flex items-center px-6 py-2 rounded-lg font-medium bg-yellow-200 text-black hover:bg-yellow-300"
+                                                >
+                                                    Mark as Paid
+                                                </motion.button>
+                                            )}
+                                            {/* <div onClick={handleMarkAsPaid}
+                                                className={`flex-1 text-center mt-2 cursor-pointer py-1 px-2 rounded text-xs font-medium transition-colors ${appointment?.paymentStatus === 'paid'
+                                                    ? 'bg-green-600 text-white cursor-default'
+                                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                    }`}>
+                                                {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
+                                            </div> */}
+                                        </div>
                             </div>
 
                             {/* Appointment Summary */}
@@ -419,7 +442,7 @@ Thank you – Hummari Chikitsa
                         </div>
 
                         <div className="flex justify-end space-x-4 mt-6">
-                            <motion.button
+                            {/* <motion.button
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={handleMarkAsPaid}
@@ -429,7 +452,7 @@ Thank you – Hummari Chikitsa
                                     }`}
                             >
                                 {appointment?.paymentStatus === 'paid' ? 'Confirmed Paid' : 'Mark as Paid'}
-                            </motion.button>
+                            </motion.button> */}
                             <motion.button
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.98 }}

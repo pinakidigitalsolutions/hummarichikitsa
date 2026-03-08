@@ -25,12 +25,12 @@ const AnalyticsDashboard = () => {
 
   const dashboardData = dashboard;
 
-  const [dateRange, setDateRange] = useState({
-    start_date: "",
-    end_date: "",
-  });
+  const today = new Date().toISOString().split("T")[0];
 
-  const colors = { primary: "#0d9488" };
+  const [dateRange, setDateRange] = useState({
+    start_date: today,
+    end_date: today
+  });
 
   // first load
   useEffect(() => {
@@ -116,23 +116,18 @@ const AnalyticsDashboard = () => {
     </motion.div>
   );
 
-  // Show loading/empty state
-  if (loading && !dashboardData) {
-    return (
-      <Dashboard>
-        <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">
-          <div className="flex-1 flex items-center justify-center">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="rounded-full h-8 w-8 border-t-2 border-b-2"
-              style={{ borderColor: colors.primary }}
-            />
-          </div>
-        </div>
-      </Dashboard>
-    );
-  }
+  const SkeletonCard = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-pulse">
+      <div className="h-4 bg-gray-200 rounded w-32 mb-3"></div>
+      <div className="h-8 bg-gray-200 rounded w-24"></div>
+    </div>
+  );
+
+  const ChartSkeleton = () => (
+    <div className="bg-white p-6 animate-pulse">
+      <div className="h-56 w-full bg-gray-200 rounded"></div>
+    </div>
+  );
 
   if (!dashboardData || !chartData) return null;
 
@@ -212,27 +207,52 @@ const AnalyticsDashboard = () => {
             variants={containerVariants}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8"
           >
-            <KPICard
-              title="Total Appointments"
-              value={dashboardData.total_appointments}
-              color="blue"
-            />
-            <KPICard
-              title="Today's Appointments"
-              value={dashboardData.today_appointments}
-              color="green"
-            />
-            <KPICard
-              title="Completed Appointments"
-              value={dashboardData.completed_appointments}
-              color="green"
-            />
-            <KPICard
-              title="Total Revenue"
-              value={dashboardData.total_revenue}
-              prefix="₹"
-              color="purple"
-            />
+            {loading ? (
+              <SkeletonCard />
+            ) : (
+              <KPICard
+                title="Total Appointments"
+                value={dashboardData.total_appointments}
+                color="blue"
+              />
+            )}
+            {loading ? (
+              <SkeletonCard />
+            ) : (
+              <KPICard
+                title="Today's Appointments"
+                value={dashboardData.today_appointments}
+                color="green"
+              />
+            )}
+            {loading ? (
+              <SkeletonCard />
+            ) : (
+              <KPICard
+                title="Today's Completed Appointments"
+                value={dashboardData.completed_appointments}
+                color="green"
+              />
+            )}
+            {loading ? (
+              <SkeletonCard />
+            ) : (
+              <KPICard
+                title="Total Revenue"
+                value={dashboardData.total_revenue}
+                color="orange"
+              />
+            )}
+            {/* {loading ? (
+              <SkeletonCard />
+            ) : (
+              <KPICard
+                title="Total Revenue"
+                value={dashboardData.total_revenue}
+                prefix="₹"
+                color="purple"
+              />
+            )} */}
           </motion.div>
 
 
@@ -248,56 +268,68 @@ const AnalyticsDashboard = () => {
                 Appointment Status Distribution
               </h3>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData.appointmentStatusData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {chartData.appointmentStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}`, 'Appointments']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                {loading ? (
+                  <ChartSkeleton />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+
+                    <PieChart>
+                      <Pie
+                        data={chartData.appointmentStatusData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {chartData.appointmentStatusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`${value}`, 'Appointments']} />
+                      <Legend />
+                    </PieChart>
+
+                  </ResponsiveContainer>
+                )}
               </div>
             </motion.div>
 
             {/* Appointment Distribution Bar Chart */}
             <motion.div
               variants={itemVariants}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8"
+              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Appointment Distribution
               </h3>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData.appointmentDistributionData}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`${value}`, 'Appointments']} />
-                    <Legend />
-                    <Bar
-                      dataKey="count"
-                      name="Appointments"
-                      radius={[4, 4, 0, 0]}
-                    >
-                      {chartData.appointmentDistributionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                {loading ? (
+                  <ChartSkeleton />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+
+                    <BarChart data={chartData.appointmentDistributionData}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${value}`, 'Appointments']} />
+                      <Legend />
+                      <Bar
+                        dataKey="count"
+                        name="Appointments"
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {chartData.appointmentDistributionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+
+                  </ResponsiveContainer>
+                )}
               </div>
             </motion.div>
           </div>

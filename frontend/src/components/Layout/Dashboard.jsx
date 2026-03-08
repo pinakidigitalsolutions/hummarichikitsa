@@ -90,7 +90,7 @@ const Dashboard = ({ children }) => {
                   className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-white mr-3 sm:mr-4"
                 />
                 <div>
-                  <h2 className="font-semibold text-sm sm:text-lg">{data?.user?.name || data?.name || userData?.user?.name || "User"}</h2>
+                  <h2 className="font-semibold text-sm sm:text-lg">{data?.user?.name || data?.name || userData?.user?.name || (currentRole === "admin" ? "Admin" : "User")}</h2>
                   {/* <p className="text-blue-100 text-xs sm:text-sm capitalize">{currentRole || 'User'}</p> */}
                   <p className="text-blue-100 text-xs sm:text-sm">{data?.hospital?.name || userData?.hospital?.name || userData?.hospitalId?.name ||''}</p>
                 </div>
