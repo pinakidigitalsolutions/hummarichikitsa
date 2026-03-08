@@ -240,7 +240,7 @@ const AnalyticsDashboard = () => {
               <KPICard
                 title="Total Revenue"
                 value={dashboardData.total_revenue}
-                color="orange"
+                color="purple"
               />
             )}
             {/* {loading ? (
