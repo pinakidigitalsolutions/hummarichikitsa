@@ -12,11 +12,11 @@ import hospital_img from '../../../src/assets/hospital_image.png';
 const HospitalList = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const [isLoading, setIsLoading] = useState(true);
+    const hospitals = useSelector((state) => state?.hospitals?.hospitals);
+    const [isLoading, setIsLoading] = useState(!hospitals || hospitals.length === 0);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const hospitals = useSelector((state) => state?.hospitals?.hospitals);
     const itemsPerPage = 8;
 
     // Professional healthcare color scheme
@@ -35,11 +35,11 @@ const HospitalList = () => {
     // Filter hospitals based on search and status
     const filteredHospitals = hospitals?.filter(hospital => {
         // alert(hospital.status === statusFilter)/
-        
+
         const matchesSearch = hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             hospital.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             hospital.city.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' ||  statusFilter;
+        const matchesStatus = statusFilter === 'all' || statusFilter;
         return matchesSearch && matchesStatus;
     });
 
@@ -76,6 +76,7 @@ const HospitalList = () => {
 
     useEffect(() => {
         const fetchData = async () => {
+            if (hospitals && hospitals.length > 0) return;
             setIsLoading(true);
             try {
                 await dispatch(getAllHospital());
@@ -86,7 +87,7 @@ const HospitalList = () => {
             }
         };
         fetchData();
-    }, [dispatch]);
+    }, [dispatch, hospitals?.length]);
 
     // Animation variants
     const containerVariants = {
@@ -112,7 +113,7 @@ const HospitalList = () => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4"
-                   
+
                 >
                     <div>
                         <h1 className="text-xl font-bold ">Hospital Management</h1>
@@ -166,7 +167,7 @@ const HospitalList = () => {
                 </motion.div>
 
                 {/* Stats Bar */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
@@ -280,7 +281,7 @@ const HospitalList = () => {
                                                             <td className="px-4 py-3">
                                                                 <button
                                                                     onClick={() => updateStatus(hospital._id)}
-                                                                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium text-white ${hospital.status  ? 'bg-green-500' : 'bg-red-500'}`}
+                                                                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium text-white ${hospital.status ? 'bg-green-500' : 'bg-red-500'}`}
                                                                 >
                                                                     {hospital?.status ? "Active" : "InActive"}
                                                                 </button>
@@ -377,7 +378,7 @@ const HospitalList = () => {
                                                     } else {
                                                         pageNum = currentPage - 2 + i;
                                                     }
-                                                    
+
                                                     return (
                                                         <button
                                                             key={pageNum}

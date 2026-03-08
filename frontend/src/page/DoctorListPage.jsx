@@ -24,7 +24,7 @@ const DoctorListPage = () => {
   // Local state
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(hospitals.length === 0 || doctors.length === 0);
 
   // Find the current hospital and its doctors
   const hospital = hospitals.find(h => h._id === hospitalId);
@@ -58,21 +58,15 @@ const DoctorListPage = () => {
   // Fetch data on component mount
   useEffect(() => {
     (async () => {
-      if (!hospital || hospital.length === 0) {
-
+      if (hospitals.length === 0) {
         await dispatch(getAllHospital())
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
       }
-
-      if (!doctors || doctors.length === 0) {
+      if (doctors.length === 0) {
         await dispatch(getAllDoctors())
       }
-
-    })()
-
-  }, []);
+      setIsLoading(false);
+    })();
+  }, [dispatch, hospitals.length, doctors.length]);
   useEffect(() => {
     window.scrollTo(0, 0); // Scrolls to top when page/component mounts
   }, []);
@@ -89,7 +83,7 @@ const DoctorListPage = () => {
   }, [dispatch]);
 
 
-  if (isLoading || hospitalsLoading || doctorsLoading) {
+  if (isLoading) {
     return (
       <Layout>
         <div className="mx-auto px-4 py-8">

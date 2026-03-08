@@ -16,7 +16,7 @@ const Patients = () => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [appointmentsByDate, setAppointmentsByDate] = useState({});
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     // Professional healthcare color scheme
     const colors = {
         primary: '#2B6CB0',      // Deep blue
@@ -52,6 +52,8 @@ const Patients = () => {
                 await dispatch(getAllAppointment());
             } catch (error) {
                 console.error("Error fetching appointments:", error);
+            } finally {
+                setIsLoading(false);
             }
         };
         if (!appointments || appointments.length === 0) {

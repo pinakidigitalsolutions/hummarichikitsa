@@ -106,31 +106,25 @@ const MyHospital = () => {
                 beds: 56
             });
         }, 800);
-        (
-            async () => {
-                getstaff()
-                const res = axiosInstance.get(`/doctor/?hospitalId=${hospital?._id}`)
-                const doc = (await res).data.doctors
-                setDoctor(doc)
 
-            }
-        )()
+        if (hospital) {
+            (async () => {
+                try {
+                    await getstaff();
+                    const res = await axiosInstance.get(`/doctor/?hospitalId=${hospital?._id}`);
+                    setDoctor(res.data.doctors);
+                } catch (error) {
+                    console.error("Error fetching details:", error);
+                } finally {
+                    setLoading(false);
+                }
+            })();
+        }
 
         return () => clearTimeout(timer);
     }, [hospital]);
 
-
-
     const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 2000);
-
-        return () => clearTimeout(timer); // cleanup
-    }, []);
 
     if (loading) {
         return (

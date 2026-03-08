@@ -287,7 +287,7 @@ const HospitalListPage = () => {
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(hospitals.length === 0 || doctors?.length === 0);
 
   const dispatch = useDispatch();
 
@@ -296,24 +296,19 @@ const HospitalListPage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  // Fetch hospitals & doctors
   useEffect(() => {
     (async () => {
-      setLoading(true);
-      await dispatch(getAllDoctors());
+      if (!doctors || doctors.length === 0) {
+        setLoading(true);
+        await dispatch(getAllDoctors());
+      }
+      if (!hospitals || hospitals.length === 0) {
+        setLoading(true);
+        await dispatch(getAllHospital());
+      }
       setLoading(false);
     })();
-  }, [dispatch]);
-
-  useEffect(() => {
-    setLoading(true);
-    if (!hospitals || hospitals.length === 0) {
-      dispatch(getAllHospital());
-      setLoading(false);
-    } else {
-      setLoading(false);
-    }
-  }, [dispatch, hospitals]);
+  }, []);
 
   // Unique cities & specialties for filters
   const cities = Array.from(new Set(hospitals.map(hospital => hospital.city)));

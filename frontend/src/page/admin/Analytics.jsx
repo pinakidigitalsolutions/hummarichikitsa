@@ -10,7 +10,7 @@ import axiosInstance from '../../Helper/axiosInstance';
 const AnalyticsDashboard = () => {
   const colors = { primary: '#0d9488' };
   const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState({
     start_date: '',
     end_date: ''
@@ -120,7 +120,7 @@ const AnalyticsDashboard = () => {
   );
 
   // Show loading/empty state
-  if (loading) {
+  if (loading && !dashboardData) {
     return (
       <Dashboard>
         <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">

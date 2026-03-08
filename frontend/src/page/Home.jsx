@@ -103,13 +103,15 @@ const Home = () => {
   const hospital = useSelector((state) => state.hospitals.hospitals);
   const { isLoggedIn, data: currentUser } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-  const [hospitalsLoading, setHospitalsLoading] = useState(true);
-  const [doctorsLoading, setDoctorsLoading] = useState(true);
-  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const appoint = useSelector((state) => state.appointment?.appointment);
-  const [appointments, setAppointments] = useState([]);
   const doct = useSelector((state) => state?.doctors?.doctors.doctors);
-  const [doctors, setdoctors] = useState([])
+
+  const [hospitalsLoading, setHospitalsLoading] = useState(!hospital || hospital.length === 0);
+  const [doctorsLoading, setDoctorsLoading] = useState(!doct || doct.length === 0);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(!appoint || appoint.length === 0);
+
+  const [appointments, setAppointments] = useState([]);
+  const [doctors, setdoctors] = useState([]);
   useEffect(() => {
     setdoctors(doct)
   }, [doct])

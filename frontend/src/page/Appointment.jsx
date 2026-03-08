@@ -428,7 +428,7 @@ function Appointment() {
 
     useEffect(() => {
         (async () => {
-            if (!doctors || doctors.length === 0) {
+            if (!doct || doct.length === 0) {
                 await dispatch(getAllDoctors())
             }
             if (!hospital || hospital.length === 0) {
@@ -438,7 +438,7 @@ function Appointment() {
     }, [])
 
     useEffect(() => {
-        if (!appointments || appointments.length === 0) {
+        if (!appoint || appoint.length === 0) {
             (async () => {
                 await dispatch(getAllAppointment())
             })()
@@ -505,7 +505,7 @@ function Appointment() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }, []);
 
-    if (isLoading) {
+    if (isLoading && (!appoint || appoint.length === 0)) {
         return (
             <Layout>
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

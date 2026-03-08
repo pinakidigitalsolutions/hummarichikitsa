@@ -872,7 +872,7 @@ const DoctorDetailPage = () => {
     const [patient, setPatient] = useState('');
     const [mobile, setMobile] = useState('');
     const [dob, setDob] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(!hospitals || hospitals.length === 0 || !doctors || doctors.length === 0);
     const [Loading, setLoading] = useState(false);
     const [login, setlogin] = useState(false);
     const token = localStorage.getItem('token');
@@ -1109,10 +1109,10 @@ Thank you – Hummari Chikitsa
     useEffect(() => {
         const fetchData = async () => {
             try {
-                await Promise.all([
-                    dispatch(getAllHospital()),
-                    dispatch(getAllDoctors())
-                ]);
+                const promises = [];
+                if (!hospitals || hospitals.length === 0) promises.push(dispatch(getAllHospital()));
+                if (!doctors || doctors.length === 0) promises.push(dispatch(getAllDoctors()));
+                if (promises.length > 0) await Promise.all(promises);
             } catch (error) {
                 console.error('Error fetching data:', error);
             } finally {
@@ -1121,7 +1121,7 @@ Thank you – Hummari Chikitsa
         };
 
         fetchData();
-    }, [dispatch]);
+    }, [dispatch, hospitals?.length, doctors?.length]);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });

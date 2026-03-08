@@ -4,8 +4,8 @@ import toast from "react-hot-toast";
 
 const initialState = {
     appointment: [],
-    state : false,
-    state: null,
+    loading: false,
+    error: null,
 };
 
 export const AppointmentCreate = createAsyncThunk(
@@ -114,7 +114,9 @@ const appointmentSlice = createSlice({
     extraReducers: (builder) => {
         builder
             .addCase(getAllAppointment.pending, (state) => {
-                state.loading = true;
+                if (!state.appointment || state.appointment.length === 0) {
+                    state.loading = true;
+                }
                 state.error = null;
             })
             .addCase(getAllAppointment.fulfilled, (state, action) => {

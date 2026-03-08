@@ -49,15 +49,15 @@ const DoctorList = () => {
   //   alert(hospitalId)
   // console.log(doctors)
   const doctor = doctors.filter((d) => d.hospitalId?._id == hospitalId);
-  
+
   const dispatch = useDispatch();
   useEffect(() => {
-    (
-      async () => {
+    if (!doctors || doctors.length === 0) {
+      (async () => {
         await dispatch(getAllDoctors());
-      }
-    )()
-  }, [])
+      })();
+    }
+  }, [doctors?.length, dispatch]);
   return (
     <Dashboard>
       <div className="min-h-screen  py-0">

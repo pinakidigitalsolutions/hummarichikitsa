@@ -802,7 +802,7 @@ const DoctorDashboard = () => {
         { id: 3, patient: 'Robert Brown', issue: 'Billing query', priority: 'Low', time: '1 hour ago', status: 'resolved' },
     ]);
     const [showEscalations, setShowEscalations] = useState(false);
-    const [isLoading, setIsLoading] = useState(true); // Loading state
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSMSSend = () => {
         const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
@@ -929,7 +929,6 @@ const DoctorDashboard = () => {
     // Get appointments with status filter
     const getAppointment = useCallback(async (status = 'all') => {
         try {
-            setIsLoading(true);
             const res = await dispatch(todayAppointment());
             if (res.payload?.appointments) {
                 setAppointments(res.payload.appointments);
@@ -940,8 +939,6 @@ const DoctorDashboard = () => {
             }
         } catch (error) {
             console.error("Error fetching appointments:", error);
-        } finally {
-            setIsLoading(false);
         }
     }, [dispatch, calculateStats]);
 

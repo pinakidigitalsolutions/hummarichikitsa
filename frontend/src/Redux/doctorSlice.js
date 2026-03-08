@@ -169,7 +169,9 @@ const doctordSlice = createSlice({
     builder
       // getAllDoctors
       .addCase(getAllDoctors.pending, (state) => {
-        state.loading = true;
+        if (!state.doctors || state.doctors.length === 0) {
+          state.loading = true;
+        }
       })
       .addCase(getAllDoctors.fulfilled, (state, action) => {
         state.loading = false;
@@ -181,7 +183,9 @@ const doctordSlice = createSlice({
       })
       // GetDoctorHospitalId
       .addCase(GetDoctorHospitalId.pending, (state) => {
-        state.loading = true;
+        if (!state.doctors || state.doctors.length === 0) {
+          state.loading = true;
+        }
       })
       .addCase(GetDoctorHospitalId.fulfilled, (state, action) => {
         state.loading = false;
