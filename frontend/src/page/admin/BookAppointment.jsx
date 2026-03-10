@@ -244,26 +244,26 @@ Thank you – Hummari Chikitsa
   };
 
 useEffect(() => {
-
-  if (doctors.length > 0) return;
-
   const fetchDoctors = async () => {
     try {
       setLoading(prev => ({ ...prev, doctors: true }));
 
       const userResponse = await axiosInstance.get("/user/me");
 
-      let currentHospitalId = userResponse?.data?.hospital?._id;
-      if (!currentHospitalId) {
-        currentHospitalId = userResponse?.data?.user?._id;
-      }
+      const currentHospitalId =
+        userResponse?.data?.hospital?._id ||
+        userResponse?.data?.user?.hospitalId?._id ||
+        userResponse?.data?.user?.hospitalId ||
+        null;
 
       setHospitalId(currentHospitalId);
 
       if (decoded?.role === "admin") {
         await dispatch(getAllDoctors());
       } else {
-        await dispatch(GetDoctorHospitalId(currentHospitalId));
+        if (currentHospitalId) {
+          await dispatch(GetDoctorHospitalId(currentHospitalId));
+        }
       }
 
     } catch (err) {
@@ -275,7 +275,35 @@ useEffect(() => {
 
   fetchDoctors();
 
-}, [dispatch, doctors.length]);
+}, [dispatch, decoded?.role]);
+
+  useEffect(() => {
+    if (decoded?.role !== 'doctor' || !Array.isArray(doctors) || doctors.length === 0) {
+      return;
+    }
+
+    const doctor = doctors.find((item) => item?._id === decoded?.id);
+    if (!doctor) {
+      return;
+    }
+
+    setSelectedDoctor(doctor);
+
+    const dates = getAvailableDatesForDoctor(doctor);
+    const nextDate = dates[0]?.date || '';
+    const nextSlots = nextDate ? getTimeSlotsForSelectedDate(doctor, nextDate) : [];
+
+    setAvailableDates(dates);
+    setSelectedDate(nextDate);
+    setAvailableSlots(nextSlots);
+    setSelectedSlot('');
+
+    setFormData((prev) => ({
+      ...prev,
+      doctorId: doctor._id,
+      booking_amount: doctor.consultationFee || prev.booking_amount || ''
+    }));
+  }, [decoded?.id, decoded?.role, doctors]);
 
   // Handle doctor selection change
   const handleDoctorChange = (e) => {
@@ -531,11 +559,31 @@ useEffect(() => {
             <>
               <div className="flex border-b border-gray-200 bg-white px-4">
 
-                {['patient', 'appointment', 'payment'].map((section) => (
+                {['patient', 'appointment', 'payment'].map((section) => {
+                  let isDisabled = false;
+                  
+                  if (section === 'appointment' && activeSection !== 'appointment') {
+                    // Patient tab must be complete
+                    isDisabled = !formData.patient.trim() || !formData.mobile.trim() || !/^\d{10}$/.test(formData.mobile) || !formData.dob;
+                  }
+                  
+                  if (section === 'payment' && activeSection !== 'payment') {
+                    // Appointment tab must be complete
+                    isDisabled = !formData.doctorId || !selectedDate || !selectedSlot;
+                  }
+
+                  return (
                   <button
                     key={section}
                     onClick={() => setActiveSection(section)}
-                    className={`px-4 py-3 text-sm font-medium capitalize flex items-center ${activeSection === section ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                    disabled={isDisabled}
+                    className={`px-4 py-3 text-sm font-medium capitalize flex items-center transition-colors ${
+                      isDisabled 
+                        ? 'text-gray-300 cursor-not-allowed' 
+                        : activeSection === section 
+                          ? 'text-blue-600 border-b-2 border-blue-600' 
+                          : 'text-gray-500 hover:text-gray-700'
+                    }`}
                   >
                     {section === 'patient' && (
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -554,7 +602,8 @@ useEffect(() => {
                     )}
                     {section}
                   </button>
-                ))}
+                );
+                })}
               </div>
 
               <div className="flex-1 overflow-y-auto p-4">
@@ -639,8 +688,20 @@ useEffect(() => {
                       <div className="flex justify-end pt-2">
                         <button
                           type="button"
-                          onClick={() => setActiveSection('appointment')}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                          onClick={() => {
+                            const newErrors = {};
+                            if (!formData.patient.trim()) newErrors.patient = 'Patient name is required';
+                            if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
+                            if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Invalid mobile number';
+                            if (!formData.dob) newErrors.dob = 'Age is required';
+                            
+                            if (Object.keys(newErrors).length > 0) {
+                              setErrors(prev => ({ ...prev, ...newErrors }));
+                              return;
+                            }
+                            setActiveSection('appointment');
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-400"
                         >
                           Next: Appointment Details
                         </button>
@@ -731,6 +792,14 @@ useEffect(() => {
                           </div>
                         )}
                         {errors.date && <p className="mt-1 text-xs text-red-600">{errors.date}</p>}
+                        {selectedDate && (
+                          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">Selected Date:</span>
+                              <span className="text-sm font-semibold text-blue-600">{format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Time Slot Selection */}
@@ -801,8 +870,19 @@ useEffect(() => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setActiveSection('payment')}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                          onClick={() => {
+                            const newErrors = {};
+                            if (!formData.doctorId) newErrors.doctorId = 'Please select a doctor';
+                            if (!selectedDate) newErrors.date = 'Please select a date';
+                            if (!selectedSlot) newErrors.slot = 'Please select a time slot';
+                            
+                            if (Object.keys(newErrors).length > 0) {
+                              setErrors(prev => ({ ...prev, ...newErrors }));
+                              return;
+                            }
+                            setActiveSection('payment');
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-400"
                         >
                           Next: Payment
                         </button>

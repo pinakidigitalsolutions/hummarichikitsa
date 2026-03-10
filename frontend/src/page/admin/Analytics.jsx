@@ -26,18 +26,17 @@ const AnalyticsDashboard = () => {
   const dashboardData = dashboard;
 
   const today = new Date().toISOString().split("T")[0];
-
-  const [dateRange, setDateRange] = useState({
+  const defaultDateRange = {
     start_date: today,
-    end_date: today
-  });
+    end_date: today,
+  };
+
+  const [dateRange, setDateRange] = useState(defaultDateRange);
 
   // first load
   useEffect(() => {
-    if (!dashboard) {
-      dispatch(getDashboardData());
-    }
-  }, [dashboard, dispatch]);
+    dispatch(getDashboardData(defaultDateRange));
+  }, [dispatch, today]);
 
   // filter
   const handleDateFilter = () => {
@@ -52,8 +51,8 @@ const AnalyticsDashboard = () => {
   };
 
   const handleClearFilter = () => {
-    setDateRange({ start_date: "", end_date: "" });
-    dispatch(getDashboardData());
+    setDateRange(defaultDateRange);
+    dispatch(getDashboardData(defaultDateRange));
   };
 
   // charts
@@ -61,26 +60,23 @@ const AnalyticsDashboard = () => {
     if (!dashboardData) return null;
 
     const {
-      total_appointments,
-      today_appointments,
+      confirmed_appointments,
       completed_appointments,
       check_in_appointments,
-      confirmed_appointments,
       total_revenue,
-      revenue_by_status,
+      paid_amount,
     } = dashboardData;
 
     return {
       appointmentStatusData: [
-        { name: "Completed", value: completed_appointments, color: "#10B981" },
-        { name: "Check-in", value: check_in_appointments, color: "#3B82F6" },
         { name: "Confirmed", value: confirmed_appointments, color: "#F59E0B" },
+        { name: "Completed", value: completed_appointments, color: "#10B981" },
+        { name: "Checked-in", value: check_in_appointments, color: "#3B82F6" },
       ],
 
       appointmentDistributionData: [
-        { name: "Total", count: total_appointments, color: "#6366F1" },
-        { name: "Today", count: today_appointments, color: "#8B5CF6" },
-        { name: "Completed", count: completed_appointments, color: "#10B981" },
+        { name: "Total", count: confirmed_appointments + completed_appointments + check_in_appointments, color: "#6366F1" },
+        { name: "Paid", count: paid_amount || 0, color: "#10B981" },
       ],
     };
   }, [dashboardData]);
@@ -211,25 +207,16 @@ const AnalyticsDashboard = () => {
               <SkeletonCard />
             ) : (
               <KPICard
-                title="Total Appointments"
-                value={dashboardData.total_appointments}
-                color="blue"
+                title="Confirmed Appointments"
+                value={dashboardData.confirmed_appointments}
+                color="amber"
               />
             )}
             {loading ? (
               <SkeletonCard />
             ) : (
               <KPICard
-                title="Today's Appointments"
-                value={dashboardData.today_appointments}
-                color="green"
-              />
-            )}
-            {loading ? (
-              <SkeletonCard />
-            ) : (
-              <KPICard
-                title="Today's Completed Appointments"
+                title="Completed Appointments"
                 value={dashboardData.completed_appointments}
                 color="green"
               />
@@ -238,12 +225,12 @@ const AnalyticsDashboard = () => {
               <SkeletonCard />
             ) : (
               <KPICard
-                title="Total Revenue"
-                value={dashboardData.total_revenue}
-                color="purple"
+                title="Checked-in Appointments"
+                value={dashboardData.check_in_appointments}
+                color="blue"
               />
             )}
-            {/* {loading ? (
+            {loading ? (
               <SkeletonCard />
             ) : (
               <KPICard
@@ -252,7 +239,7 @@ const AnalyticsDashboard = () => {
                 prefix="₹"
                 color="purple"
               />
-            )} */}
+            )}
           </motion.div>
 
 

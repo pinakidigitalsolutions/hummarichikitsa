@@ -371,19 +371,37 @@ function Appointment() {
     const hospital = useSelector((state) => state.hospitals.hospitals);
     const appoint = useSelector((state) => state.appointment?.appointment);
     const dispatch = useDispatch();
-    const doct = useSelector((state) => state?.doctors?.doctors.doctors);
+    const doct = useSelector((state) => state.doctors?.doctors ?? []);
 
     const isLoading = useSelector((state) => state.appointment?.loading);
     const [activeTab, setActiveTab] = useState('active');
     const [doctors, setdoctors] = useState([])
     const [appointments, setappointments] = useState([])
 
+    const mergeDoctorUpdate = (prevDoctors, updatedDoctor) => {
+        const safeDoctors = Array.isArray(prevDoctors) ? prevDoctors : [];
+
+        if (!updatedDoctor?._id) {
+            return safeDoctors;
+        }
+
+        const exists = safeDoctors.some((doctor) => doctor?._id === updatedDoctor._id);
+
+        if (!exists) {
+            return [...safeDoctors, updatedDoctor];
+        }
+
+        return safeDoctors.map((doctor) =>
+            doctor?._id === updatedDoctor._id ? { ...doctor, ...updatedDoctor } : doctor
+        );
+    };
+
     useEffect(() => {
-        setdoctors(doct)
+        setdoctors(Array.isArray(doct) ? doct : [])
     }, [doct])
 
     useEffect(() => {
-        if (appoint) {
+        if (Array.isArray(appoint)) {
             setappointments(appoint);
         }
     }, [appoint]);
@@ -391,32 +409,21 @@ function Appointment() {
     useEffect(() => {
         socket.on("appointmentUpdate", (data) => {
             setappointments((prev) => {
-                const exists = prev.some((a) => a._id === data._id);
+                const safeAppointments = Array.isArray(prev) ? prev : [];
+                const exists = safeAppointments.some((a) => a._id === data._id);
                 if (exists) {
-                    return prev.map((a) => (a._id === data._id ? data : a));
+                    return safeAppointments.map((a) => (a._id === data._id ? data : a));
                 }
-                return [...prev, data];
+                return [...safeAppointments, data];
             });
         });
 
         socket.on("doctorUpdate", (data) => {
-            setdoctors((prev) => {
-                const exists = prev.some((a) => a._id === data._id);
-                if (exists) {
-                    return prev.map((a) => (a._id === data._id ? data : a));
-                }
-                return [...prev, data];
-            });
+            setdoctors((prev) => mergeDoctorUpdate(prev, data));
         })
 
         socket.on("doctoractive", (data) => {
-            setdoctors((prev) => {
-                const exists = prev.some((a) => a._id === data._id);
-                if (exists) {
-                    return prev.map((a) => (a._id === data._id ? data : a));
-                }
-                return [...prev, data];
-            });
+            setdoctors((prev) => mergeDoctorUpdate(prev, data));
         })
 
         return () => {

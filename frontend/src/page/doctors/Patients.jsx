@@ -15,8 +15,13 @@ const Patients = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
+    const [dateRangeStart, setDateRangeStart] = useState(null);
+    const [dateRangeEnd, setDateRangeEnd] = useState(null);
+    const [filterMode, setFilterMode] = useState('single'); // 'single' or 'range'
     const [appointmentsByDate, setAppointmentsByDate] = useState({});
     const [isLoading, setIsLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
     // Professional healthcare color scheme
     const colors = {
         primary: '#2B6CB0',      // Deep blue
@@ -70,10 +75,31 @@ const Patients = () => {
             appointment.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             appointment.mobile?.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesDate = selectedDate ? isSameDay(new Date(appointment.date), new Date(selectedDate)) : true;
+        let matchesDate = true;
+        
+        if (filterMode === 'single' && selectedDate) {
+            matchesDate = isSameDay(new Date(appointment.date), new Date(selectedDate));
+        } else if (filterMode === 'range' && dateRangeStart && dateRangeEnd) {
+            const appointmentDate = new Date(appointment.date);
+            const rangeStart = new Date(dateRangeStart);
+            const rangeEnd = new Date(dateRangeEnd);
+            matchesDate = appointmentDate >= rangeStart && appointmentDate <= rangeEnd;
+        }
 
         return matchesSearch && matchesDate;
     });
+
+    // Calculate pagination
+    const totalPages = Math.ceil((filteredAppointments?.length || 0) / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedAppointments = (selectedDate || (dateRangeStart && dateRangeEnd))
+        ? filteredAppointments 
+        : filteredAppointments?.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    // Reset to first page when filter/search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedDate, searchTerm, dateRangeStart, dateRangeEnd, filterMode]);
 
     // Get dates for current month view
     const getDaysInMonth = () => {
@@ -122,11 +148,11 @@ const Patients = () => {
                     <motion.div variants={itemVariants}>
                         <motion.div
                             variants={itemVariants}
-                            className="bg-white rounded-xl shadow-sm p-6 transition-all hover:shadow-md"
+                            className="bg-white rounded-xl shadow-md p-6 transition-all"
                             style={{ borderLeft: `4px solid ${colors.primary}` }}
                         >
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                                <h3 className="text-lg font-semibold" style={{ color: colors.text }}>Filter by Date</h3>
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                <h3 className="text-lg font-semibold" style={{ color: colors.text }}>Filter Appointments by Date</h3>
                                 <div className="flex items-center space-x-3">
                                     <motion.button
                                         whileHover={{ scale: 1.1 }}
@@ -136,7 +162,7 @@ const Patients = () => {
                                     >
                                         <ChevronLeft className="h-5 w-5" style={{ color: colors.primary }} />
                                     </motion.button>
-                                    <span className="font-medium" style={{ color: colors.text }}>
+                                    <span className="font-medium min-w-[150px] text-center" style={{ color: colors.text }}>
                                         {format(currentMonth, 'MMMM yyyy')}
                                     </span>
                                     <motion.button
@@ -150,7 +176,67 @@ const Patients = () => {
                                 </div>
                             </div>
 
+                            {/* Filter Mode Toggle */}
+                            <div className="flex gap-3 mb-6">
+                                <button
+                                    onClick={() => {
+                                        setFilterMode('single');
+                                        setDateRangeStart(null);
+                                        setDateRangeEnd(null);
+                                    }}
+                                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        filterMode === 'single'
+                                            ? 'text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                    style={filterMode === 'single' ? { backgroundColor: colors.primary } : {}}
+                                >
+                                    Single Date
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setFilterMode('range');
+                                        setSelectedDate(null);
+                                    }}
+                                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        filterMode === 'range'
+                                            ? 'text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                    style={filterMode === 'range' ? { backgroundColor: colors.primary } : {}}
+                                >
+                                    Date Range
+                                </button>
+                            </div>
+
+                            {/* Date Range Inputs */}
+                            {filterMode === 'range' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2" style={{ color: colors.text }}>Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={dateRangeStart || ''}
+                                            onChange={(e) => setDateRangeStart(e.target.value)}
+                                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                                            style={{ borderColor: colors.primary + '40', '--tw-ring-color': colors.primary }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2" style={{ color: colors.text }}>End Date</label>
+                                        <input
+                                            type="date"
+                                            value={dateRangeEnd || ''}
+                                            onChange={(e) => setDateRangeEnd(e.target.value)}
+                                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                                            style={{ borderColor: colors.primary + '40', '--tw-ring-color': colors.primary }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Mini Calendar */}
+                            {filterMode === 'single' && (
                             <div className="mb-4">
                                 <div className="grid grid-cols-7 gap-1 mb-2">
                                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -172,12 +258,13 @@ const Patients = () => {
                                                 whileTap={hasAppointments ? { scale: 0.95 } : {}}
                                                 onClick={() => setSelectedDate(hasAppointments ? dateStr : null)}
                                                 className={`h-12 rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-all
-                                            ${isSelected ? 'bg-blue-600 text-white' : ''}
+                                            ${isSelected ? 'text-white shadow-md' : ''}
                                             ${!isSelected && isToday ? 'border-2' : ''}
-                                            ${hasAppointments ? 'hover:bg-blue-50 cursor-pointer' : 'text-gray-300 cursor-default'}
+                                            ${hasAppointments ? 'hover:shadow-md cursor-pointer' : 'text-gray-300 cursor-default'}
                                             ${!hasAppointments && !isSelected ? 'bg-gray-50' : ''}
                                         `}
                                                 style={{
+                                                    backgroundColor: isSelected ? colors.primary : 'transparent',
                                                     borderColor: isToday ? colors.primary : 'transparent',
                                                     color: isSelected ? 'white' : (isToday ? colors.primary : (hasAppointments ? colors.text : ''))
                                                 }}
@@ -186,8 +273,8 @@ const Patients = () => {
                                                 {date.getDate()}
                                                 {hasAppointments && (
                                                     <motion.span
-                                                        className={`w-2 h-2 rounded-full mt-1 
-                                                    ${isSelected ? 'bg-white' : 'bg-blue-500'}`}
+                                                        className={`w-2 h-2 rounded-full mt-1 ${isSelected ? 'bg-white' : ''}`}
+                                                        style={{ backgroundColor: isSelected ? 'white' : colors.primary }}
                                                         animate={{
                                                             scale: [1, 1.2, 1]
                                                         }}
@@ -202,9 +289,10 @@ const Patients = () => {
                                     })}
                                 </div>
                             </div>
+                            )}
 
                             <AnimatePresence>
-                                {selectedDate && (
+                                {(selectedDate || (dateRangeStart && dateRangeEnd)) && (
                                     <motion.div
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -213,12 +301,19 @@ const Patients = () => {
                                         style={{ backgroundColor: `${colors.primary}10` }}
                                     >
                                         <span className="text-sm font-medium" style={{ color: colors.primary }}>
-                                            Showing appointments for {format(new Date(selectedDate), 'MMMM d, yyyy')}
+                                            {selectedDate 
+                                                ? `Showing appointments for ${format(new Date(selectedDate), 'MMMM d, yyyy')}`
+                                                : `Showing appointments from ${format(new Date(dateRangeStart), 'MMM d')} to ${format(new Date(dateRangeEnd), 'MMM d, yyyy')}`
+                                            }
                                         </span>
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
-                                            onClick={() => setSelectedDate(null)}
+                                            onClick={() => {
+                                                setSelectedDate(null);
+                                                setDateRangeStart(null);
+                                                setDateRangeEnd(null);
+                                            }}
                                             className="text-sm font-medium px-3 py-1 rounded-md"
                                             style={{
                                                 backgroundColor: `${colors.primary}20`,
@@ -255,6 +350,8 @@ const Patients = () => {
                         <h2 className="text-xl font-semibold text-center flex-1" style={{ color: colors.text }}>
                             {selectedDate
                                 ? `Appointments on ${format(new Date(selectedDate), 'MMMM d, yyyy')}`
+                                : (dateRangeStart && dateRangeEnd)
+                                ? `Appointments from ${format(new Date(dateRangeStart), 'MMM d')} to ${format(new Date(dateRangeEnd), 'MMM d')}`
                                 : "All Patient Appointments"}
                         </h2>
                         <div className="relative w-full md:w-72">
@@ -291,8 +388,8 @@ const Patients = () => {
                         <div className="w-full">
                             {/* Mobile Card View */}
                             <div className="md:hidden space-y-4 p-4">
-                                {filteredAppointments?.length > 0 ? (
-                                    filteredAppointments.map((appointment) => (
+                                {paginatedAppointments?.length > 0 ? (
+                                    paginatedAppointments.map((appointment) => (
                                         <div
                                             key={appointment._id}
                                             onClick={() => navigate(`/appointment/${appointment?._id}`)}
@@ -378,8 +475,8 @@ const Patients = () => {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         <AnimatePresence>
-                                            {filteredAppointments?.length > 0 ? (
-                                                filteredAppointments.map((appointment) => {
+                                            {paginatedAppointments?.length > 0 ? (
+                                                paginatedAppointments.map((appointment) => {
                                                     let finalStatus;
                                                     if (appointment.status === "completed") {
                                                         finalStatus = "Completed";
@@ -474,6 +571,46 @@ const Patients = () => {
                                         </AnimatePresence>
                                     </tbody>
                                 </table>
+                                !dateRangeStart && 
+                                {/* Pagination Controls */}
+                                {!selectedDate && (filteredAppointments?.length > ITEMS_PER_PAGE || currentPage > 1) && (
+                                    <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+                                        <div className="text-sm text-gray-600">
+                                            Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredAppointments?.length)} of {filteredAppointments?.length}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                disabled={currentPage === 1}
+                                                className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Previous
+                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                                    <button
+                                                        key={page}
+                                                        onClick={() => setCurrentPage(page)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                                                            currentPage === page
+                                                                ? 'bg-blue-600 text-white'
+                                                                : 'border border-gray-300 hover:bg-gray-50'
+                                                        }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                disabled={currentPage === totalPages}
+                                                className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

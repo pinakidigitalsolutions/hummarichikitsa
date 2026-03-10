@@ -872,7 +872,7 @@ const DoctorDashboard = () => {
             icon: <XCircle size={14} />
         },
         'check-in': {
-            text: 'Check In',
+            text: 'Checked In',
             bgColor: '#E0E7FF',
             textColor: '#3730A3',
             icon: <Clock size={14} />
@@ -1286,7 +1286,26 @@ const DoctorDashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                    <div>
+                    <div className='space-y-2'>
+                        <div className="text-gray-500 text-xs">Date</div>
+                        <div className="text-gray-500 text-xs">Time</div>
+                        <div className="text-gray-500 text-xs">Token</div>
+                        <div className="text-gray-500 text-xs">Appointment Number</div>
+                        <div className="text-gray-500 text-xs">Payment Status</div>
+                    </div>
+                    <div className='space-y-2'>
+                        <div className="text-xs text-gray-500">{appointment?.date}</div>
+                        <div className="text-xs">{appointment?.slot}</div>
+                        <div className="text-xs">{appointment?.token}</div>
+                        <div className="text-xs"> {appointment?.appointmentNumber}</div>
+                        <span className={`text-xs ${appointment?.paymentStatus === 'paid'
+                            ? 'text-green-600'
+                            : 'text-yellow-600'
+                            }`}>
+                            {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                        </span>
+                    </div>
+                    {/* <div>
                         <div className="text-gray-500 text-xs">Time</div>
                         <div className="font-medium">{appointment?.slot}</div>
                         <div className="text-xs text-gray-500 mt-1">{appointment?.date}</div>
@@ -1307,7 +1326,7 @@ const DoctorDashboard = () => {
                             }`}>
                             {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
                         </span>
-                    </div>
+                    </div> */}
                 </div>
 
                 <div className="flex space-x-2 pt-3 border-t border-gray-100">

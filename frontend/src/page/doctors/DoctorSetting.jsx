@@ -409,15 +409,24 @@ const DoctorSetting = () => {
                             </div>
                         </div>
                     </div>
+
+                {/* Availability Card */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                    <h2 className="text-lg md:text-xl font-semibold text-slate-800 mb-2">
+                        Manage Availability
+                    </h2>
+                    <p className="text-slate-600 text-sm mb-4">
+                        Set your working hours and time slots for patient appointments
+                    </p>
                     <Link
                         to={`/doctor/add/slot`}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 transition"
+                        className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200 font-medium"
                     >
                         Add Availability
                     </Link>
-                    {/* <Slots/> */}
+                </div>
 
-                    {/* Statistics Card */}
+                {/* Statistics Card */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
                         <h2 className="text-lg md:text-xl font-semibold text-slate-800 mb-4">
                             Change Password

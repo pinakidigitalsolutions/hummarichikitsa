@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../Helper/axiosInstance';
 import toast from 'react-hot-toast'
+import Dashboard from '../../components/Layout/Dashboard';
 class Slot {
     constructor(startTime = "10:00", endTime = "20:00") {
         this.startTime = startTime;
@@ -156,6 +157,104 @@ const BusinessScheduler = () => {
 
     const forceUpdate = () => setRefresh(!refresh);
 
+    const timeToMinutes = (time) => {
+        if (!time || !time.includes(':')) {
+            return null;
+        }
+
+        const [hours, minutes] = time.split(':').map(Number);
+
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+            return null;
+        }
+
+        return hours * 60 + minutes;
+    };
+
+    const hasConflictingSlot = (slots, startTime, endTime, excludeIndex = -1) => {
+        const startMinutes = timeToMinutes(startTime);
+        const endMinutes = timeToMinutes(endTime);
+
+        if (startMinutes === null || endMinutes === null || startMinutes >= endMinutes) {
+            return false;
+        }
+
+        return slots.some((slot, slotIndex) => {
+            if (slotIndex === excludeIndex) {
+                return false;
+            }
+
+            const slotStart = timeToMinutes(slot.startTime);
+            const slotEnd = timeToMinutes(slot.endTime);
+
+            if (slotStart === null || slotEnd === null) {
+                return false;
+            }
+
+            return startMinutes < slotEnd && endMinutes > slotStart;
+        });
+    };
+
+    const getNextAvailableSlot = (slots) => {
+        if (!slots.length) {
+            return { startTime: '10:00', endTime: '20:00' };
+        }
+
+        const sortedSlots = [...slots].sort((firstSlot, secondSlot) => {
+            return timeToMinutes(firstSlot.startTime) - timeToMinutes(secondSlot.startTime);
+        });
+
+        const latestSlot = sortedSlots[sortedSlots.length - 1];
+        const nextStartMinutes = timeToMinutes(latestSlot.endTime);
+
+        if (nextStartMinutes === null || nextStartMinutes >= 23 * 60) {
+            return null;
+        }
+
+        const nextEndMinutes = Math.min(nextStartMinutes + 60, 23 * 60 + 59);
+        const formatMinutes = (totalMinutes) => {
+            const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+            const minutes = (totalMinutes % 60).toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        };
+
+        return {
+            startTime: formatMinutes(nextStartMinutes),
+            endTime: formatMinutes(nextEndMinutes)
+        };
+    };
+
+    const validateSchedule = (scheduleToValidate) => {
+        for (const [dayName, dayData] of Object.entries(scheduleToValidate.days)) {
+            if (!dayData.enabled) {
+                continue;
+            }
+
+            for (let slotIndex = 0; slotIndex < dayData.slots.length; slotIndex += 1) {
+                const slot = dayData.slots[slotIndex];
+                const startMinutes = timeToMinutes(slot.startTime);
+                const endMinutes = timeToMinutes(slot.endTime);
+
+                if (startMinutes === null || endMinutes === null) {
+                    toast.error(`Invalid time selected for ${dayName}`);
+                    return false;
+                }
+
+                if (startMinutes >= endMinutes) {
+                    toast.error(`${dayName}: end time must be later than start time`);
+                    return false;
+                }
+
+                if (hasConflictingSlot(dayData.slots, slot.startTime, slot.endTime, slotIndex)) {
+                    toast.error(`${dayName}: this time slot overlaps an existing slot`);
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    };
+
     const getSchedule = async () => {
         try {
             setLoading(true);
@@ -207,7 +306,14 @@ const BusinessScheduler = () => {
             return;
         }
 
-        dayObj.addSlot("10:00", "20:00");
+        const nextSlot = getNextAvailableSlot(dayObj.slots);
+
+        if (!nextSlot) {
+            toast.error(`No more non-conflicting slots available for ${day}`);
+            return;
+        }
+
+        dayObj.addSlot(nextSlot.startTime, nextSlot.endTime);
         console.log(`Added slot to ${day}, total slots now:`, dayObj.slots.length);
         setSchedule(newSchedule);
         forceUpdate();
@@ -217,6 +323,23 @@ const BusinessScheduler = () => {
         console.log(`Updating slot ${index} ${type} to ${value} for ${day}`);
         const newSchedule = schedule.clone();
         const dayObj = newSchedule.days[day];
+
+        const existingSlot = dayObj.slots[index];
+        const nextStartTime = type === 'open' ? value : existingSlot.startTime;
+        const nextEndTime = type === 'close' ? value : existingSlot.endTime;
+
+        const startMinutes = timeToMinutes(nextStartTime);
+        const endMinutes = timeToMinutes(nextEndTime);
+
+        if (startMinutes !== null && endMinutes !== null && startMinutes >= endMinutes) {
+            toast.error('End time must be later than start time');
+            return;
+        }
+
+        if (hasConflictingSlot(dayObj.slots, nextStartTime, nextEndTime, index)) {
+            toast.error(`${day}: this time slot is already selected`);
+            return;
+        }
 
         if (type === 'open') {
             dayObj.slots[index].setOpen(value);
@@ -238,6 +361,10 @@ const BusinessScheduler = () => {
 
     const saveSchedule = async () => {
         try {
+            if (!validateSchedule(schedule)) {
+                return;
+            }
+
             setLoading(true);
 
 
@@ -291,178 +418,41 @@ const BusinessScheduler = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-6">
-                <div className="max-w-4xl mx-auto">
-                    <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-6 text-center">
-                        <p className="text-red-400 mb-4">{error}</p>
-                        <button
-                            onClick={getSchedule}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                        >
-                            Retry
-                        </button>
+            <Dashboard>
+                <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+                    <div className="max-w-5xl mx-auto">
+                        <div className="bg-white border border-red-200 rounded-xl p-6 text-center shadow-sm">
+                            <p className="text-red-600 mb-4">{error}</p>
+                            <button
+                                onClick={getSchedule}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                            >
+                                Retry
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </Dashboard>
         );
     }
 
     return (
-        // <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-6">
-        //     <div className="w-full  mx-auto">
-        //         {/* Header */}
-        //         <div className="text-center mb-8">
-        //             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-        //                 Business Hours Scheduler
-        //             </h1>
-        //             <p className="text-gray-400 mt-2">Set your business operating hours for each day</p>
-        //         </div>
-        //         {/* Schedule Container */}
-        //         <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-700 p-6 shadow-2xl">
-        //             <div className="grid gap-6">
-        //                 {Object.values(schedule.days).map(dayObj => (
-        //                     <div key={dayObj.name} className="bg-gray-900/80 rounded-xl p-4 border border-gray-700 transition-all duration-300 hover:border-gray-600">
-        //                         {/* Day Header */}
-        //                         <div className="flex items-center justify-between mb-4">
-        //                             <label className="flex items-center space-x-3 cursor-pointer group">
-        //                                 <div className="relative">
-        //                                     <input
-        //                                         type="checkbox"
-        //                                         checked={dayObj.enabled}
-        //                                         onChange={(e) => toggleDay(dayObj.name, e.target.checked)}
-        //                                         className="sr-only"
-        //                                     />
-        //                                     <div className={`w-12 h-6 rounded-full transition-all duration-300 ${dayObj.enabled ? 'bg-green-500' : 'bg-gray-600'
-        //                                         }`}>
-        //                                         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ${dayObj.enabled ? 'left-7' : 'left-1'
-        //                                             }`} />
-        //                                     </div>
-        //                                 </div>
-        //                                 <span className={`text-lg font-semibold transition-all duration-300 ${dayObj.enabled
-        //                                         ? 'text-white'
-        //                                         : 'text-gray-400'
-        //                                     } group-hover:text-white`}>
-        //                                     {dayObj.name}
-        //                                 </span>
-        //                             </label>
-
-        //                             {dayObj.enabled && (
-        //                                 <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full border border-green-500/30">
-        //                                     {dayObj.slots.length} slot(s)
-        //                                 </span>
-        //                             )}
-        //                         </div>
-
-        //                         {/* Slots Container */}
-        //                         <div className={`transition-all duration-300 ${!dayObj.enabled ? 'opacity-40 pointer-events-none' : ''
-        //                             }`}>
-        //                             <div className="space-y-3 mb-4">
-        //                                 {dayObj.slots.map((slot, index) => (
-        //                                     <div key={index} className="flex items-center space-x-3 bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-        //                                         <input
-        //                                             type="time"
-        //                                             value={slot.getOpen()}
-        //                                             onChange={(e) => updateSlot(dayObj.name, index, 'open', e.target.value)}
-        //                                             className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        //                                         />
-        //                                         <span className="text-gray-400 font-medium">to</span>
-        //                                         <input
-        //                                             type="time"
-        //                                             value={slot.getClose()}
-        //                                             onChange={(e) => updateSlot(dayObj.name, index, 'close', e.target.value)}
-        //                                             className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        //                                         />
-        //                                         <button
-        //                                             className="ml-auto px-3 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors duration-200 border border-red-500/30 hover:border-red-500/50"
-        //                                             onClick={() => removeSlot(dayObj.name, index)}
-        //                                         >
-        //                                             Remove
-        //                                         </button>
-        //                                     </div>
-        //                                 ))}
-        //                             </div>
-
-        //                             {/* Add Slot Button */}
-        //                             {dayObj.enabled && (
-        //                                 <button
-        //                                     onClick={() => addSlot(dayObj.name)}
-        //                                     className="w-full py-3 bg-blue-600/20 text-blue-400 rounded-lg border border-blue-500/30 hover:bg-blue-600/30 hover:border-blue-500/50 transition-all duration-300 font-medium flex items-center justify-center space-x-2"
-        //                                 >
-        //                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        //                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        //                                     </svg>
-        //                                     <span>Add Time Slot</span>
-        //                                 </button>
-        //                             )}
-        //                         </div>
-        //                     </div>
-        //                 ))}
-        //             </div>
-
-        //             {/* Action Buttons */}
-        //             <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-gray-700">
-        //                 <button
-        //                     onClick={saveSchedule}
-        //                     disabled={loading}
-        //                     className={`flex-1 py-3 rounded-lg font-semibold transition-all duration-300 ${saved
-        //                             ? 'bg-green-600 hover:bg-green-700'
-        //                             : loading
-        //                                 ? 'bg-blue-500/50 cursor-not-allowed'
-        //                                 : 'bg-blue-600 hover:bg-blue-700'
-        //                         } text-white flex items-center justify-center space-x-2`}
-        //                 >
-        //                     {loading ? (
-        //                         <>
-        //                             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-        //                             <span>Saving...</span>
-        //                         </>
-        //                     ) : saved ? (
-        //                         <>
-        //                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        //                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        //                             </svg>
-        //                             <span>Schedule Saved!</span>
-        //                         </>
-        //                     ) : (
-        //                         <>
-        //                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        //                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        //                             </svg>
-        //                             <span>Save Schedule</span>
-        //                         </>
-        //                     )}
-        //                 </button>
-        //             </div>
-
-        //             {/* Status Message */}
-        //             {saved && (
-        //                 <div className="mt-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg text-green-400 text-center">
-        //                     Schedule saved successfully!
-        //                 </div>
-        //             )}
-        //         </div>
-
-        //         {/* Footer Info */}
-        //         <div className="text-center mt-6 text-gray-500 text-sm">
-        //             <p>You can edit the schedule above and save changes. Data will be sent in the correct format to the API.</p>
-        //         </div>
-        //     </div>
-        // </div>
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-4 sm:p-6">
-    <div className="w-full max-w-6xl mx-auto">
+        <Dashboard>
+        <div className="max-h-screen bg-slate-50 p-4 sm:p-6">
+    <div className="w-full mx-auto">
         {/* Header */}
-        <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+        <div className="mb-6 sm:mb-8 bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
                 Business Hours Scheduler
             </h1>
-            <p className="text-gray-400 mt-2 text-sm sm:text-base">Set your business operating hours for each day</p>
+            <p className="text-slate-600 mt-2 text-sm sm:text-base">Set your business operating hours for each day</p>
         </div>
         
         {/* Schedule Container */}
-        <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-gray-700 p-4 sm:p-6 shadow-2xl">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm">
             <div className="grid gap-4 sm:gap-6">
                 {Object.values(schedule.days).map(dayObj => (
-                    <div key={dayObj.name} className="bg-gray-900/80 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-700 transition-all duration-300 hover:border-gray-600">
+                    <div key={dayObj.name} className="bg-slate-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-200 transition-all duration-300 hover:border-slate-300">
                         {/* Day Header */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
                             <label className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group">
@@ -473,22 +463,22 @@ const BusinessScheduler = () => {
                                         onChange={(e) => toggleDay(dayObj.name, e.target.checked)}
                                         className="sr-only"
                                     />
-                                    <div className={`w-10 sm:w-12 h-5 sm:h-6 rounded-full transition-all duration-300 ${dayObj.enabled ? 'bg-green-500' : 'bg-gray-600'
+                                    <div className={`w-10 sm:w-12 h-5 sm:h-6 rounded-full transition-all duration-300 ${dayObj.enabled ? 'bg-blue-600' : 'bg-slate-300'
                                         }`}>
                                         <div className={`absolute top-0.5 sm:top-1 w-3 sm:w-4 h-3 sm:h-4 rounded-full bg-white transition-all duration-300 ${dayObj.enabled ? 'left-5 sm:left-7' : 'left-0.5 sm:left-1'
                                             }`} />
                                     </div>
                                 </div>
                                 <span className={`text-base sm:text-lg font-semibold transition-all duration-300 ${dayObj.enabled
-                                        ? 'text-white'
-                                        : 'text-gray-400'
-                                    } group-hover:text-white`}>
+                                        ? 'text-slate-800'
+                                        : 'text-slate-400'
+                                    } group-hover:text-slate-800`}>
                                     {dayObj.name}
                                 </span>
                             </label>
 
                             {dayObj.enabled && (
-                                <span className="self-start sm:self-auto px-2 sm:px-3 py-0.5 sm:py-1 bg-green-500/20 text-green-400 text-xs sm:text-sm rounded-full border border-green-500/30">
+                                <span className="self-start sm:self-auto px-2 sm:px-3 py-0.5 sm:py-1 bg-blue-50 text-blue-700 text-xs sm:text-sm rounded-full border border-blue-200">
                                     {dayObj.slots.length} slot(s)
                                 </span>
                             )}
@@ -499,25 +489,25 @@ const BusinessScheduler = () => {
                             }`}>
                             <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                                 {dayObj.slots.map((slot, index) => (
-                                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700">
+                                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 bg-white rounded-lg p-2 sm:p-3 border border-slate-200">
                                         <div className="flex-1 w-full sm:w-auto flex items-center gap-2 sm:gap-3">
                                             <input
                                                 type="time"
                                                 value={slot.getOpen()}
                                                 onChange={(e) => updateSlot(dayObj.name, index, 'open', e.target.value)}
-                                                className="flex-1 sm:flex-none bg-gray-700 border border-gray-600 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                                                className="flex-1 sm:flex-none bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                             />
-                                            <span className="text-gray-400 font-medium hidden sm:block">to</span>
-                                            <span className="text-gray-400 font-medium text-xs sm:hidden">→</span>
+                                            <span className="text-slate-500 font-medium hidden sm:block">to</span>
+                                            <span className="text-slate-500 font-medium text-xs sm:hidden">→</span>
                                             <input
                                                 type="time"
                                                 value={slot.getClose()}
                                                 onChange={(e) => updateSlot(dayObj.name, index, 'close', e.target.value)}
-                                                className="flex-1 sm:flex-none bg-gray-700 border border-gray-600 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                                                className="flex-1 sm:flex-none bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                                             />
                                         </div>
                                         <button
-                                            className="w-full sm:w-auto sm:ml-auto px-2 sm:px-3 py-1.5 sm:py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors duration-200 border border-red-500/30 hover:border-red-500/50 text-sm sm:text-base"
+                                            className="w-full sm:w-auto sm:ml-auto px-2 sm:px-3 py-1.5 sm:py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-200 border border-red-200 text-sm sm:text-base"
                                             onClick={() => removeSlot(dayObj.name, index)}
                                         >
                                             Remove
@@ -530,7 +520,7 @@ const BusinessScheduler = () => {
                             {dayObj.enabled && (
                                 <button
                                     onClick={() => addSlot(dayObj.name)}
-                                    className="w-full py-2 sm:py-3 bg-blue-600/20 text-blue-400 rounded-lg border border-blue-500/30 hover:bg-blue-600/30 hover:border-blue-500/50 transition-all duration-300 font-medium flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
+                                    className="w-full py-2 sm:py-3 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-100 transition-all duration-300 font-medium flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
                                 >
                                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -544,7 +534,7 @@ const BusinessScheduler = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-700">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-200">
                 <button
                     onClick={saveSchedule}
                     disabled={loading}
@@ -580,18 +570,19 @@ const BusinessScheduler = () => {
 
             {/* Status Message */}
             {saved && (
-                <div className="mt-3 sm:mt-4 p-2 sm:p-4 bg-green-500/20 border border-green-500/30 rounded-lg text-green-400 text-center text-sm sm:text-base">
+                <div className="mt-3 sm:mt-4 p-2 sm:p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-center text-sm sm:text-base">
                     Schedule saved successfully!
                 </div>
             )}
         </div>
 
         {/* Footer Info */}
-        <div className="text-center mt-4 sm:mt-6 text-gray-500 text-xs sm:text-sm">
+        <div className="text-center mt-4 sm:mt-6 text-slate-500 text-xs sm:text-sm">
             <p>You can edit the schedule above and save changes. Data will be sent in the correct format to the API.</p>
         </div>
     </div>
 </div>
+        </Dashboard>
     );
 };
 
