@@ -802,7 +802,7 @@ const DoctorDashboard = () => {
         { id: 3, patient: 'Robert Brown', issue: 'Billing query', priority: 'Low', time: '1 hour ago', status: 'resolved' },
     ]);
     const [showEscalations, setShowEscalations] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     const handleSMSSend = () => {
         const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
@@ -928,6 +928,7 @@ const DoctorDashboard = () => {
 
     // Get appointments with status filter
     const getAppointment = useCallback(async (status = 'all') => {
+        setIsLoading(true);
         try {
             const res = await dispatch(todayAppointment());
             if (res.payload?.appointments) {
@@ -936,9 +937,16 @@ const DoctorDashboard = () => {
             } else if (res.payload?.data) {
                 setAppointments(res.payload.data);
                 calculateStats(res.payload.data);
+            } else {
+                setAppointments([]);
+                calculateStats([]);
             }
         } catch (error) {
             console.error("Error fetching appointments:", error);
+            setAppointments([]);
+            calculateStats([]);
+        } finally {
+            setIsLoading(false);
         }
     }, [dispatch, calculateStats]);
 
@@ -1112,19 +1120,31 @@ const DoctorDashboard = () => {
 
     // Loading Component
     const LoadingScreen = () => (
-        <div className="flex flex-col items-center justify-center min-h-[400px] py-12">
-            <div className="flex-1 flex items-center justify-center">
-                <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="rounded-full h-8 w-8 border-t-2 border-b-2"
-                    style={{ borderColor: colors.primary }}
-                />
+        <div className="space-y-4 p-4 sm:p-6">
+            <div className="md:hidden space-y-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                    <div key={index} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+                        <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-gray-200" />
+                                <div className="space-y-2">
+                                    <div className="h-3 w-28 bg-gray-200 rounded" />
+                                    <div className="h-2 w-20 bg-gray-100 rounded" />
+                                </div>
+                            </div>
+                            <div className="h-6 w-14 bg-gray-100 rounded-full" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="h-3 w-20 bg-gray-200 rounded" />
+                            <div className="h-3 w-24 bg-gray-200 rounded" />
+                        </div>
+                    </div>
+                ))}
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-2">Loading Appointments</h3>
-            <p className="text-gray-500 text-center max-w-md">
-                Please wait while we fetch today's appointment schedule...
-            </p>
+
+            <div className="hidden md:block">
+                <TableSkeleton />
+            </div>
         </div>
     );
 

@@ -150,9 +150,13 @@ Thank you – Hummari Chikitsa
     };
 
     const getAppointment = async () => {
-        const res = await dispatch(getAppointmentById(id));
-        setAppointments(res.payload);
-        setIsLoading(false);
+        setIsLoading(true);
+        try {
+            const res = await dispatch(getAppointmentById(id));
+            setAppointments(res.payload);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -238,16 +242,42 @@ Thank you – Hummari Chikitsa
             )}
             <div className="min-h-screen bg-gray-50 py-1 px-4">
                 {isLoading ? (
-                    <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                        <div className="flex-1 flex items-center justify-center">
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                className="rounded-full h-8 w-8 border-t-2 border-b-2"
-                                style={{ borderColor: colors.primary }}
-                            />
+                    <div className="mx-auto animate-pulse">
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6 border border-gray-200">
+                            <div className="bg-gray-200 p-6">
+                                <div className="h-8 w-8 rounded-full bg-gray-300 mb-4" />
+                                <div className="h-7 w-56 bg-gray-300 rounded mb-2" />
+                                <div className="h-4 w-36 bg-gray-300 rounded" />
+                                <div className="flex gap-2 mt-4">
+                                    <div className="h-10 w-28 bg-gray-300 rounded-lg" />
+                                    <div className="h-10 w-28 bg-gray-300 rounded-lg" />
+                                </div>
+                            </div>
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {Array.from({ length: 4 }).map((_, idx) => (
+                                    <div key={idx} className="p-3 rounded-lg border border-gray-100 bg-gray-50">
+                                        <div className="h-3 w-24 bg-gray-200 rounded mb-2" />
+                                        <div className="h-4 w-36 bg-gray-300 rounded" />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <p className="text-gray-600 font-medium mt-4 animate-pulse">Loading appointment details...</p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            {Array.from({ length: 3 }).map((_, idx) => (
+                                <div key={idx} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                                    <div className="bg-gray-100 p-4 border-b border-gray-200">
+                                        <div className="h-5 w-32 bg-gray-200 rounded" />
+                                    </div>
+                                    <div className="p-4 space-y-3">
+                                        <div className="h-3 w-20 bg-gray-200 rounded" />
+                                        <div className="h-4 w-28 bg-gray-300 rounded" />
+                                        <div className="h-3 w-24 bg-gray-200 rounded" />
+                                        <div className="h-4 w-32 bg-gray-300 rounded" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 ) : !appointment ? (
                     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -368,6 +398,18 @@ Thank you – Hummari Chikitsa
                                         <p className="font-medium text-gray-900">{appointment?.paymentMethod}</p>
                                     </div>
                                 </div>
+
+                                {(appointment?.paymentStatus === 'paid' || appointment?.paymentStatus === 'completed') && (
+                                    <div className="flex items-center space-x-4 p-3 bg-indigo-50 rounded-lg">
+                                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                                            <FaMoneyBillWave className="text-indigo-600 text-lg" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-500">Payment Status</p>
+                                            <p className="font-medium text-green-600">{appointment?.paymentStatus}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

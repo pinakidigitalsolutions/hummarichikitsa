@@ -202,7 +202,7 @@ const Dashboard = ({ children }) => {
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
-                      <span className="font-medium">Setting</span>
+                      <span className="font-medium">Settings</span>
                     </NavLink>
                   </li>
                 )}
@@ -218,7 +218,7 @@ const Dashboard = ({ children }) => {
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
-                      <span className="font-medium">Setting</span>
+                      <span className="font-medium">Settings</span>
                     </NavLink>
                   </li>
                 )}

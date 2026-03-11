@@ -26,6 +26,7 @@ const AnalyticsDashboard = () => {
   const dashboardData = dashboard;
 
   const today = new Date().toISOString().split("T")[0];
+
   const defaultDateRange = {
     start_date: today,
     end_date: today,
@@ -63,20 +64,25 @@ const AnalyticsDashboard = () => {
       confirmed_appointments,
       completed_appointments,
       check_in_appointments,
+      paid_appointments,
       total_revenue,
-      paid_amount,
     } = dashboardData;
+
+    const confirmedCount = Number(confirmed_appointments) || 0;
+    const completedCount = Number(completed_appointments) || 0;
+    const checkInCount = Number(check_in_appointments) || 0;
+    const paidCount = Number(paid_appointments) || 0;
 
     return {
       appointmentStatusData: [
-        { name: "Confirmed", value: confirmed_appointments, color: "#F59E0B" },
-        { name: "Completed", value: completed_appointments, color: "#10B981" },
-        { name: "Checked-in", value: check_in_appointments, color: "#3B82F6" },
+        { name: "Confirmed", value: confirmedCount, color: "#F59E0B" },
+        { name: "Completed", value: completedCount, color: "#10B981" },
+        { name: "Checked-in", value: checkInCount, color: "#3B82F6" },
       ],
 
       appointmentDistributionData: [
-        { name: "Total", count: confirmed_appointments + completed_appointments + check_in_appointments, color: "#6366F1" },
-        { name: "Paid", count: paid_amount || 0, color: "#10B981" },
+        { name: "Total", count: confirmedCount + completedCount + checkInCount, color: "#6366F1" },
+        { name: "Paid", count: paidCount, color: "#10B981" },
       ],
     };
   }, [dashboardData]);

@@ -19,7 +19,7 @@ const Patients = () => {
     const [dateRangeEnd, setDateRangeEnd] = useState(null);
     const [filterMode, setFilterMode] = useState('single'); // 'single' or 'range'
     const [appointmentsByDate, setAppointmentsByDate] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
     // Professional healthcare color scheme
@@ -47,7 +47,6 @@ const Patients = () => {
             }, {});
             setAppointmentsByDate(byDate);
         }
-        setIsLoading(false);
     }, [appointments]);
 
     useEffect(() => {
@@ -63,8 +62,10 @@ const Patients = () => {
         };
         if (!appointments || appointments.length === 0) {
             fetchData();
+        } else {
+            setIsLoading(false);
         }
-    }, [dispatch]);
+    }, [dispatch, appointments]);
 
     // Filter appointments based on search and selected date
     const filteredAppointments = appointments?.filter(appointment => {
@@ -143,210 +144,171 @@ const Patients = () => {
                 className="space-y-6 p-4 sm:p-6"
                 style={{ backgroundColor: colors.background, minHeight: '100vh' }}
             >
-                {/* Date Filter Section */}
-                {isDateFilterOpen && (
-                    <motion.div variants={itemVariants}>
-                        <motion.div
-                            variants={itemVariants}
-                            className="bg-white rounded-xl shadow-md p-6 transition-all"
-                            style={{ borderLeft: `4px solid ${colors.primary}` }}
-                        >
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                                <h3 className="text-lg font-semibold" style={{ color: colors.text }}>Filter Appointments by Date</h3>
-                                <div className="flex items-center space-x-3">
-                                    <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                                        className="p-1 rounded-md hover:bg-gray-100"
-                                    >
-                                        <ChevronLeft className="h-5 w-5" style={{ color: colors.primary }} />
-                                    </motion.button>
-                                    <span className="font-medium min-w-[150px] text-center" style={{ color: colors.text }}>
-                                        {format(currentMonth, 'MMMM yyyy')}
-                                    </span>
-                                    <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                                        className="p-1 rounded-md hover:bg-gray-100"
-                                    >
-                                        <ChevronRight className="h-5 w-5" style={{ color: colors.primary }} />
-                                    </motion.button>
-                                </div>
-                            </div>
-
-                            {/* Filter Mode Toggle */}
-                            <div className="flex gap-3 mb-6">
-                                <button
-                                    onClick={() => {
-                                        setFilterMode('single');
-                                        setDateRangeStart(null);
-                                        setDateRangeEnd(null);
-                                    }}
-                                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        filterMode === 'single'
-                                            ? 'text-white shadow-md'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                    style={filterMode === 'single' ? { backgroundColor: colors.primary } : {}}
-                                >
-                                    Single Date
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setFilterMode('range');
-                                        setSelectedDate(null);
-                                    }}
-                                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        filterMode === 'range'
-                                            ? 'text-white shadow-md'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                    style={filterMode === 'range' ? { backgroundColor: colors.primary } : {}}
-                                >
-                                    Date Range
-                                </button>
-                            </div>
-
-                            {/* Date Range Inputs */}
-                            {filterMode === 'range' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-2" style={{ color: colors.text }}>Start Date</label>
-                                        <input
-                                            type="date"
-                                            value={dateRangeStart || ''}
-                                            onChange={(e) => setDateRangeStart(e.target.value)}
-                                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                                            style={{ borderColor: colors.primary + '40', '--tw-ring-color': colors.primary }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-2" style={{ color: colors.text }}>End Date</label>
-                                        <input
-                                            type="date"
-                                            value={dateRangeEnd || ''}
-                                            onChange={(e) => setDateRangeEnd(e.target.value)}
-                                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                                            style={{ borderColor: colors.primary + '40', '--tw-ring-color': colors.primary }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Mini Calendar */}
-                            {filterMode === 'single' && (
-                            <div className="mb-4">
-                                <div className="grid grid-cols-7 gap-1 mb-2">
-                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                                        <div key={day} className="text-center text-xs font-medium py-1" style={{ color: colors.muted }}>
-                                            {day}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="grid grid-cols-7 gap-1">
-                                    {getDaysInMonth().map((date) => {
-                                        const dateStr = format(date, 'yyyy-MM-dd');
-                                        const hasAppointments = appointmentsByDate[dateStr] > 0;
-                                        const isSelected = selectedDate && isSameDay(date, new Date(selectedDate));
-                                        const isToday = isSameDay(date, new Date());
-                                        return (
-                                            <motion.button
-                                                key={dateStr}
-                                                whileHover={hasAppointments ? { scale: 1.05 } : {}}
-                                                whileTap={hasAppointments ? { scale: 0.95 } : {}}
-                                                onClick={() => setSelectedDate(hasAppointments ? dateStr : null)}
-                                                className={`h-12 rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-all
-                                            ${isSelected ? 'text-white shadow-md' : ''}
-                                            ${!isSelected && isToday ? 'border-2' : ''}
-                                            ${hasAppointments ? 'hover:shadow-md cursor-pointer' : 'text-gray-300 cursor-default'}
-                                            ${!hasAppointments && !isSelected ? 'bg-gray-50' : ''}
-                                        `}
-                                                style={{
-                                                    backgroundColor: isSelected ? colors.primary : 'transparent',
-                                                    borderColor: isToday ? colors.primary : 'transparent',
-                                                    color: isSelected ? 'white' : (isToday ? colors.primary : (hasAppointments ? colors.text : ''))
-                                                }}
-                                                disabled={!hasAppointments}
-                                            >
-                                                {date.getDate()}
-                                                {hasAppointments && (
-                                                    <motion.span
-                                                        className={`w-2 h-2 rounded-full mt-1 ${isSelected ? 'bg-white' : ''}`}
-                                                        style={{ backgroundColor: isSelected ? 'white' : colors.primary }}
-                                                        animate={{
-                                                            scale: [1, 1.2, 1]
-                                                        }}
-                                                        transition={{
-                                                            duration: 0.5,
-                                                            repeat: Infinity
-                                                        }}
-                                                    />
-                                                )}
-                                            </motion.button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                            )}
-
-                            <AnimatePresence>
-                                {(selectedDate || (dateRangeStart && dateRangeEnd)) && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        className="flex justify-between items-center rounded-lg px-4 py-3 mb-2"
-                                        style={{ backgroundColor: `${colors.primary}10` }}
-                                    >
-                                        <span className="text-sm font-medium" style={{ color: colors.primary }}>
-                                            {selectedDate 
-                                                ? `Showing appointments for ${format(new Date(selectedDate), 'MMMM d, yyyy')}`
-                                                : `Showing appointments from ${format(new Date(dateRangeStart), 'MMM d')} to ${format(new Date(dateRangeEnd), 'MMM d, yyyy')}`
-                                            }
-                                        </span>
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => {
-                                                setSelectedDate(null);
-                                                setDateRangeStart(null);
-                                                setDateRangeEnd(null);
-                                            }}
-                                            className="text-sm font-medium px-3 py-1 rounded-md"
-                                            style={{
-                                                backgroundColor: `${colors.primary}20`,
-                                                color: colors.primary
-                                            }}
-                                        >
-                                            Clear filter
-                                        </motion.button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </motion.div>
-                    </motion.div>
-                )}
-
                 {/* Appointments List Section */}
                 <motion.div
                     variants={itemVariants}
-                    className="bg-white rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md"
+                    className="bg-white min-h-[calc(100vh-50px)] rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md"
                 >
                     <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="px-4 py-2 rounded-lg font-medium"
-                            style={{
-                                backgroundColor: `${colors.primary}20`,
-                                color: colors.primary
-                            }}
-                            onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
-                        >
-                            {isDateFilterOpen ? 'Hide Calendar' : 'Filter by Date'}
-                        </motion.button>
+                        <div className="relative w-full md:w-auto">
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                className="px-4 py-2 rounded-lg font-medium w-full md:w-auto"
+                                style={{
+                                    backgroundColor: `${colors.primary}20`,
+                                    color: colors.primary
+                                }}
+                                onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
+                            >
+                                {isDateFilterOpen ? 'Hide Calendar' : 'Filter by Date'}
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {isDateFilterOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="mt-3 md:mt-2 md:absolute md:top-full md:left-0 z-30 w-full md:w-[460px] bg-white rounded-xl shadow-xl p-4 border"
+                                        style={{ borderColor: `${colors.primary}20` }}
+                                    >
+                                        <div className="flex justify-between items-center mb-4 gap-3">
+                                            <h3 className="text-sm font-semibold" style={{ color: colors.text }}>Filter by Date</h3>
+                                            <div className="flex items-center space-x-2">
+                                                <motion.button
+                                                    whileHover={{ scale: 1.08 }}
+                                                    whileTap={{ scale: 0.92 }}
+                                                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                                                    className="p-1 rounded-md hover:bg-gray-100"
+                                                >
+                                                    <ChevronLeft className="h-4 w-4" style={{ color: colors.primary }} />
+                                                </motion.button>
+                                                <span className="font-medium min-w-[120px] text-center text-sm" style={{ color: colors.text }}>
+                                                    {format(currentMonth, 'MMMM yyyy')}
+                                                </span>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.08 }}
+                                                    whileTap={{ scale: 0.92 }}
+                                                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                                                    className="p-1 rounded-md hover:bg-gray-100"
+                                                >
+                                                    <ChevronRight className="h-4 w-4" style={{ color: colors.primary }} />
+                                                </motion.button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 mb-4">
+                                            <button
+                                                onClick={() => {
+                                                    setFilterMode('single');
+                                                    setDateRangeStart(null);
+                                                    setDateRangeEnd(null);
+                                                }}
+                                                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                    filterMode === 'single'
+                                                        ? 'text-white shadow-md'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                }`}
+                                                style={filterMode === 'single' ? { backgroundColor: colors.primary } : {}}
+                                            >
+                                                Single Date
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setFilterMode('range');
+                                                    setSelectedDate(null);
+                                                }}
+                                                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                    filterMode === 'range'
+                                                        ? 'text-white shadow-md'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                }`}
+                                                style={filterMode === 'range' ? { backgroundColor: colors.primary } : {}}
+                                            >
+                                                Date Range
+                                            </button>
+                                        </div>
+
+                                        {filterMode === 'range' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                                                <div>
+                                                    <label className="block text-xs font-medium mb-1" style={{ color: colors.text }}>Start Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={dateRangeStart || ''}
+                                                        onChange={(e) => setDateRangeStart(e.target.value)}
+                                                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm"
+                                                        style={{ borderColor: colors.primary + '40', '--tw-ring-color': colors.primary }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium mb-1" style={{ color: colors.text }}>End Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={dateRangeEnd || ''}
+                                                        onChange={(e) => setDateRangeEnd(e.target.value)}
+                                                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm"
+                                                        style={{ borderColor: colors.primary + '40', '--tw-ring-color': colors.primary }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {filterMode === 'single' && (
+                                            <div className="mb-2">
+                                                <div className="grid grid-cols-7 gap-1 mb-2">
+                                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                                                        <div key={day} className="text-center text-[10px] font-medium py-1" style={{ color: colors.muted }}>
+                                                            {day}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="grid grid-cols-7 gap-1">
+                                                    {getDaysInMonth().map((date) => {
+                                                        const dateStr = format(date, 'yyyy-MM-dd');
+                                                        const hasAppointments = appointmentsByDate[dateStr] > 0;
+                                                        const isSelected = selectedDate && isSameDay(date, new Date(selectedDate));
+                                                        const isToday = isSameDay(date, new Date());
+                                                        return (
+                                                            <motion.button
+                                                                key={dateStr}
+                                                                whileHover={hasAppointments ? { scale: 1.05 } : {}}
+                                                                whileTap={hasAppointments ? { scale: 0.95 } : {}}
+                                                                onClick={() => setSelectedDate(hasAppointments ? dateStr : null)}
+                                                                className={`h-10 rounded-lg flex flex-col items-center justify-center text-xs font-medium transition-all
+                                                            ${isSelected ? 'text-white shadow-md' : ''}
+                                                            ${!isSelected && isToday ? 'border-2' : ''}
+                                                            ${hasAppointments ? 'hover:shadow-md cursor-pointer' : 'text-gray-300 cursor-default'}
+                                                            ${!hasAppointments && !isSelected ? 'bg-gray-50' : ''}
+                                                        `}
+                                                                style={{
+                                                                    backgroundColor: isSelected ? colors.primary : 'transparent',
+                                                                    borderColor: isToday ? colors.primary : 'transparent',
+                                                                    color: isSelected ? 'white' : (isToday ? colors.primary : (hasAppointments ? colors.text : ''))
+                                                                }}
+                                                                disabled={!hasAppointments}
+                                                            >
+                                                                {date.getDate()}
+                                                                {hasAppointments && (
+                                                                    <motion.span
+                                                                        className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isSelected ? 'bg-white' : ''}`}
+                                                                        style={{ backgroundColor: isSelected ? 'white' : colors.primary }}
+                                                                        animate={{ scale: [1, 1.2, 1] }}
+                                                                        transition={{ duration: 0.5, repeat: Infinity }}
+                                                                    />
+                                                                )}
+                                                            </motion.button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                         <h2 className="text-xl font-semibold text-center flex-1" style={{ color: colors.text }}>
                             {selectedDate
                                 ? `Appointments on ${format(new Date(selectedDate), 'MMMM d, yyyy')}`
@@ -376,13 +338,88 @@ const Patients = () => {
                     </div>
 
                     {isLoading ? (
-                        <div className="p-12 flex justify-center">
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                className="rounded-full h-12 w-12 border-t-2 border-b-2"
-                                style={{ borderColor: colors.primary }}
-                            />
+                        <div className="w-full">
+                            <div className="md:hidden space-y-4 p-4">
+                                {Array.from({ length: 4 }).map((_, index) => (
+                                    <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-pulse">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex items-center">
+                                                <div className="h-10 w-10 rounded-full bg-gray-200" />
+                                                <div className="ml-3 space-y-2">
+                                                    <div className="h-3 w-28 bg-gray-200 rounded" />
+                                                    <div className="h-2 w-16 bg-gray-100 rounded" />
+                                                </div>
+                                            </div>
+                                            <div className="h-6 w-14 bg-gray-100 rounded-full" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 mb-4">
+                                            <div className="space-y-2">
+                                                <div className="h-2 w-16 bg-gray-100 rounded" />
+                                                <div className="h-3 w-20 bg-gray-200 rounded" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="h-2 w-12 bg-gray-100 rounded" />
+                                                <div className="h-3 w-24 bg-gray-200 rounded" />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                            <div className="h-7 w-20 bg-gray-200 rounded-lg" />
+                                            <div className="space-y-2 flex flex-col items-end">
+                                                <div className="h-2 w-12 bg-gray-100 rounded" />
+                                                <div className="h-3 w-10 bg-gray-200 rounded" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="hidden md:block overflow-auto max-h-[85vh]">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50 sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Patient</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Time</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Token</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Payment</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {Array.from({ length: 6 }).map((_, index) => (
+                                            <tr key={index}>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center animate-pulse">
+                                                        <div className="h-10 w-10 rounded-full bg-gray-200" />
+                                                        <div className="ml-4 space-y-2">
+                                                            <div className="h-3 w-28 bg-gray-200 rounded" />
+                                                            <div className="h-2 w-16 bg-gray-100 rounded" />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="space-y-2 animate-pulse">
+                                                        <div className="h-3 w-20 bg-gray-200 rounded" />
+                                                        <div className="h-2 w-24 bg-gray-100 rounded" />
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="h-3 w-10 bg-gray-200 rounded animate-pulse" />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="h-6 w-16 bg-gray-100 rounded-full animate-pulse" />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="h-6 w-16 bg-gray-100 rounded-full animate-pulse" />
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="inline-block h-8 w-24 bg-gray-200 rounded-lg animate-pulse" />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     ) : (
                         <div className="w-full">
@@ -571,7 +608,7 @@ const Patients = () => {
                                         </AnimatePresence>
                                     </tbody>
                                 </table>
-                                !dateRangeStart && 
+                                {/* !dateRangeStart &&  */}
                                 {/* Pagination Controls */}
                                 {!selectedDate && (filteredAppointments?.length > ITEMS_PER_PAGE || currentPage > 1) && (
                                     <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-between items-center">

@@ -40,6 +40,7 @@ export const getUserDashboardData = async (req, res) => {
     completedAppointments,
     checkInAppointments,
     confirmedAppointments,
+            paidAppointments,
     financialStats,
     statusRevenue
 ] = await Promise.all([
@@ -68,6 +69,12 @@ export const getUserDashboardData = async (req, res) => {
     apponitment.countDocuments({
         ...finalQuery,
         status: 'confirmed'
+    }),
+
+    // Paid appointments count
+    apponitment.countDocuments({
+        ...finalQuery,
+        paymentStatus: { $in: ["paid", "completed"] }
     }),
 
     // Total revenue (include both legacy + current paid statuses)
@@ -125,6 +132,7 @@ export const getUserDashboardData = async (req, res) => {
             completed_appointments: completedAppointments,
             check_in_appointments: checkInAppointments,
             confirmed_appointments: confirmedAppointments,
+            paid_appointments: paidAppointments,
             total_revenue: totalRevenue,
             revenue_by_status: revenueByStatus,
             today_date: today  // Include today's date in response
