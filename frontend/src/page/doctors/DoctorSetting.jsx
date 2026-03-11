@@ -12,41 +12,37 @@ const DoctorSetting = () => {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [doctor, setDoctor] = useState(null);
+    const [doctor, setDoctor] = useState({
+        status: true,
+        name: '',
+        email: '',
+        specialty: '',
+        bio: '',
+        qualification: '',
+        experience: '',
+        photo: '',
+        deactivationReason: ''
+    });
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
     const [formData, setFormData] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
     const [showResignModal, setShowResignModal] = useState(false);
     const [resignationReason, setResignationReason] = useState('');
+
     useEffect(() => {
         async function fetchData() {
             try {
+                setLoading(true);
                 const response = await axiosInstance.get("/user/me");
-                setDoctor(response.data.user)
+                setDoctor(response.data.user);
             } catch (error) {
                 console.error("Error fetching data:", error);
+            } finally {
+                setLoading(false);
             }
         }
         fetchData();
-    }, [showResignModal, successMessage]);
-
-
-
-    useEffect(() => {
-        const fetchDoctorData = async () => {
-            try {
-                setLoading(true);
-
-
-                setLoading(false);
-            } catch (error) {
-                console.error("Error fetching doctor data:", error);
-                setLoading(false);
-            }
-        };
-
-        fetchDoctorData();
     }, []);
 
     const handleInputChange = (e) => {
@@ -85,12 +81,18 @@ const DoctorSetting = () => {
 
     const toggleStatus = async () => {
         try {
-
             // Replace with actual API call
             await axiosInstance.post(`/doctor/active`, {
                 resignationReason: " "
             });
-            setSuccessMessage(`Profile ${!doctor.status ? 'activated' : 'deactivated'} successfully!`);
+            
+            // Update local state immediately
+            setDoctor(prev => ({
+                ...prev,
+                status: !prev.status
+            }));
+            
+            setSuccessMessage(`Profile ${doctor.status ? 'deactivated' : 'activated'} successfully!`);
             setShowResignModal(false);
             setTimeout(() => setSuccessMessage(''), 3000);
             setResignationReason(''); // Reset resignation reason
@@ -111,13 +113,14 @@ const DoctorSetting = () => {
             const res = await axiosInstance.post(`/doctor/active`, {
                 deactivationReason: resignationReason || ""
             })
-            //   // Add API call for resignation here
-            //   // await axiosInstance.post("/doctor/resign", {
-            //   //   reason: resignationReason
-            //   // });
-
-            //   // After resignation, set status to inactive
-            //   setDoctor(prev => ({ ...prev, status: false }));
+            
+            // Update local state immediately
+            setDoctor(prev => ({
+                ...prev,
+                status: false,
+                deactivationReason: resignationReason
+            }));
+            
             setSuccessMessage('Resignation submitted successfully!');
             setTimeout(() => setSuccessMessage(''), 3000);
             setShowResignModal(false);

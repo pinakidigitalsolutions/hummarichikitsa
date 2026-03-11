@@ -114,6 +114,7 @@ const appointmentSlice = createSlice({
     extraReducers: (builder) => {
         builder
             .addCase(getAllAppointment.pending, (state) => {
+                // Only set loading if data is empty
                 if (!state.appointment || state.appointment.length === 0) {
                     state.loading = true;
                 }

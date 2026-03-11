@@ -36,6 +36,7 @@ const Patients = () => {
     };
 
     const appointments = useSelector((state) => state.appointment?.appointment);
+    const appointmentLoading = useSelector((state) => state.appointment?.loading);
 
     // Process appointments by date
     useEffect(() => {
@@ -49,23 +50,20 @@ const Patients = () => {
         }
     }, [appointments]);
 
+    // Sync Redux loading state with component loading state
     useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                await dispatch(getAllAppointment());
-            } catch (error) {
-                console.error("Error fetching appointments:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+        setIsLoading(appointmentLoading);
+    }, [appointmentLoading]);
+
+    // Fetch appointments only once on mount
+    useEffect(() => {
+        // Only fetch if we don't have data already
         if (!appointments || appointments.length === 0) {
-            fetchData();
+            dispatch(getAllAppointment());
         } else {
             setIsLoading(false);
         }
-    }, [dispatch, appointments]);
+    }, []); // Empty dependency array - fetch only once on mount
 
     // Filter appointments based on search and selected date
     const filteredAppointments = appointments?.filter(appointment => {

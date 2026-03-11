@@ -1110,13 +1110,20 @@ const DoctorDashboard = () => {
 
     useEffect(() => {
         (async () => {
-            await axiosInstance.patch('/appointment/hospital/patient');
-            await getAppointment();
-            await dispatch(getAllAppointment());
-            await dispatch(getAllHospital());
-            await dispatch(getAllDoctors());
+            // Only fetch if appointments is empty
+            if (!appointments || appointments.length === 0) {
+                try {
+                    await axiosInstance.patch('/appointment/hospital/patient');
+                    await getAppointment();
+                    await dispatch(getAllAppointment());
+                    await dispatch(getAllHospital());
+                    await dispatch(getAllDoctors());
+                } catch (error) {
+                    console.error("Error loading data:", error);
+                }
+            }
         })()
-    }, [getAppointment, dispatch]);
+    }, []); // Empty dependency array - fetch only once on mount
 
     // Loading Component
     const LoadingScreen = () => (
