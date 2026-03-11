@@ -4,8 +4,12 @@ import toast from "react-hot-toast";
 
 const initialState = {
     appointment: [],
+    todayAppointments: [],
     loading: false,
+    todayLoading: false,
     error: null,
+    lastFetchDate: null, // Track when appointments were last fetched
+    todayFetchTime: null, // Track when today's appointments were last fetched
 };
 
 export const AppointmentCreate = createAsyncThunk(
@@ -110,11 +114,20 @@ export const getAllAppointment = createAsyncThunk(
 const appointmentSlice = createSlice({
     name: "appointment",
     initialState,
-    reducers: {},
+    reducers: {
+        clearTodayAppointments: (state) => {
+            state.todayAppointments = [];
+            state.todayFetchTime = null;
+        },
+        clearAllAppointments: (state) => {
+            state.appointment = [];
+            state.lastFetchDate = null;
+        }
+    },
     extraReducers: (builder) => {
         builder
+            // getAllAppointment handlers
             .addCase(getAllAppointment.pending, (state) => {
-                // Only set loading if data is empty
                 if (!state.appointment || state.appointment.length === 0) {
                     state.loading = true;
                 }
@@ -122,14 +135,29 @@ const appointmentSlice = createSlice({
             })
             .addCase(getAllAppointment.fulfilled, (state, action) => {
                 state.loading = false;
-                state.appointment = action.payload; // Changed from appointment to appointments
-                // console.log("Appointment data in reducer:", action.payload); // Log the payload
+                state.appointment = action.payload;
+                state.lastFetchDate = new Date().toISOString().split('T')[0];
             })
             .addCase(getAllAppointment.rejected, (state, action) => {
                 state.loading = false;
+                state.error = action.payload;
+            })
+            // todayAppointment handlers
+            .addCase(todayAppointment.pending, (state) => {
+                state.todayLoading = true;
+                state.error = null;
+            })
+            .addCase(todayAppointment.fulfilled, (state, action) => {
+                state.todayLoading = false;
+                state.todayAppointments = action.payload?.appointments || action.payload?.data || [];
+                state.todayFetchTime = new Date().getTime();
+            })
+            .addCase(todayAppointment.rejected, (state, action) => {
+                state.todayLoading = false;
                 state.error = action.payload;
             });
     },
 });
 
+export const { clearTodayAppointments, clearAllAppointments } = appointmentSlice.actions;
 export default appointmentSlice.reducer;

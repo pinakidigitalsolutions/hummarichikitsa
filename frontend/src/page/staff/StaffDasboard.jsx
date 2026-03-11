@@ -2,8 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, FileText, Search, CheckCircle, XCircle, ChevronRight, Filter, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AppointmentConferm, getAllAppointment, todayAppointment } from '../../Redux/appointment';
-import { getAllHospital } from '../../Redux/hospitalSlice';
+import { AppointmentConferm, todayAppointment } from '../../Redux/appointment';
 import { getAllDoctors } from '../../Redux/doctorSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import Dashboard from '../../components/Layout/Dashboard';
@@ -16,13 +15,15 @@ const StaffDasboard = () => {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [active, setactive] = useState(true);
 
   const { isLoggedIn, data } = useSelector((store) => store.LoginAuth || {});
+  const { todayAppointments, todayLoading } = useSelector((state) => state.appointment);
   const currentUser = data?.user || {};
+  const isFetchingRef = useRef(false);
 
   // Use ref for filter dropdown
   const filterRef = useRef(null);
@@ -54,19 +55,17 @@ const StaffDasboard = () => {
     return matchesSearch && matchesFilter;
   });
 
-  // Get appointments with status filter
-  const getAppointment = useCallback(async (status = 'all') => {
-    setIsLoading(true);
+  // Get appointments - Smart refresh
+  const getAppointment = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
-      const res = await dispatch(todayAppointment());
-      if (res.payload?.appointments) {
-        setAppointments(res.payload.appointments);
-      } else if (res.payload?.data) {
-        setAppointments(res.payload.data);
-      }
+      setIsLoading(true);
+      await dispatch(todayAppointment());
     } catch (error) {
       console.error("Error fetching appointments:", error);
     } finally {
+      isFetchingRef.current = false;
       setIsLoading(false);
     }
   }, [dispatch]);
@@ -75,14 +74,13 @@ const StaffDasboard = () => {
   const handleFilterChange = (status) => {
     setFilterStatus(status);
     setShowFilters(false);
-    getAppointment(status === 'all' ? 'all' : status);
   };
 
   const ConfirmAppointment = async (appointment_id) => {
     try {
       await dispatch(AppointmentConferm(appointment_id));
       socket.emit("appointmentUpdate", { appointment_id });
-      getAppointment(filterStatus === 'all' ? 'all' : filterStatus);
+      getAppointment();
     } catch (error) {
       console.error("Error confirming appointment:", error);
     }
@@ -149,13 +147,19 @@ const StaffDasboard = () => {
     })()
   }, []);
 
+  // Sync Redux appointments to local state
+  useEffect(() => {
+    if (todayAppointments && todayAppointments.length > 0) {
+      setAppointments(todayAppointments);
+    }
+  }, [todayAppointments]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         await axiosInstance.patch('/appointment/hospital/patient');
+        // Fetch today's appointments
         await getAppointment();
-        await dispatch(getAllAppointment());
-        await dispatch(getAllHospital());
         await dispatch(getAllDoctors());
       } catch (error) {
         console.error("Error in initial data loading:", error);
@@ -164,6 +168,29 @@ const StaffDasboard = () => {
 
     fetchData();
   }, [dispatch, getAppointment]);
+
+  // Refresh appointments on page visibility change (when tab is focused again)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible - refresh appointments
+        getAppointment();
+      }
+    };
+
+    const handleFocus = () => {
+      // Window focused - refresh appointments
+      getAppointment();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [getAppointment]);
 
   // Animation variants
   const containerVariants = {
