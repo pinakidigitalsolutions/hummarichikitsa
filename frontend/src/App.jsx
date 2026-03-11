@@ -63,7 +63,6 @@ function App() {
 
           {/* Common authenticated routes */}
           <Route element={<AdminRequire allowedRoles={["doctor", "hospital", "admin", "staff"]} />}>
-            <Route path="/" element={<Home />} />
             <Route path="/profile" element={<UserProfilePopup />} />
             <Route path="/contact" element={<Contact />} />
 
@@ -83,6 +82,8 @@ function App() {
 
           {/* Doctor / hospital / admin */}
           <Route element={<RequireAuth allowedRoles={["doctor", "hospital", "admin", "staff"]} />}>
+            <Route path="/" element={<AnalyticsDashboard />} />
+            <Route path="/dashboard" element={<AnalyticsDashboard />} />
             <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
             <Route path="/patient" element={<Patients />} />
             <Route path="/book/appointment" element={<BookAppointment />} />

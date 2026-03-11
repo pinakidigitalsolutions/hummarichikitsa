@@ -126,12 +126,11 @@ const AnalyticsDashboard = () => {
   );
 
   const ChartSkeleton = () => (
-    <div className="bg-white p-6 animate-pulse">
-      <div className="h-56 w-full bg-gray-200 rounded"></div>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-pulse h-96">
+      <div className="h-8 bg-gray-200 rounded w-40 mb-4"></div>
+      <div className="h-80 w-full bg-gray-200 rounded"></div>
     </div>
   );
-
-  if (!dashboardData || !chartData) return null;
 
   return (
     <Dashboard>
@@ -152,9 +151,9 @@ const AnalyticsDashboard = () => {
                 <p className="text-gray-600 mt-2">
                   Track appointments, revenue, and performance metrics
                 </p>
-                {dashboardData.today_date && (
+                {dashboardData?.today_date && (
                   <p className="text-sm text-gray-500 mt-1">
-                    Today's Date: {dashboardData.today_date}
+                    Today's Date: {dashboardData?.today_date}
                   </p>
                 )}
               </div>
@@ -210,41 +209,36 @@ const AnalyticsDashboard = () => {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8"
           >
             {loading ? (
-              <SkeletonCard />
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
             ) : (
-              <KPICard
-                title="Confirmed Appointments"
-                value={dashboardData.confirmed_appointments}
-                color="amber"
-              />
-            )}
-            {loading ? (
-              <SkeletonCard />
-            ) : (
-              <KPICard
-                title="Completed Appointments"
-                value={dashboardData.completed_appointments}
-                color="green"
-              />
-            )}
-            {loading ? (
-              <SkeletonCard />
-            ) : (
-              <KPICard
-                title="Checked-in Appointments"
-                value={dashboardData.check_in_appointments}
-                color="blue"
-              />
-            )}
-            {loading ? (
-              <SkeletonCard />
-            ) : (
-              <KPICard
-                title="Total Revenue"
-                value={dashboardData.total_revenue}
-                prefix="₹"
-                color="purple"
-              />
+              <>
+                <KPICard
+                  title="Confirmed Appointments"
+                  value={dashboardData?.confirmed_appointments || 0}
+                  color="amber"
+                />
+                <KPICard
+                  title="Completed Appointments"
+                  value={dashboardData?.completed_appointments || 0}
+                  color="green"
+                />
+                <KPICard
+                  title="Checked-in Appointments"
+                  value={dashboardData?.check_in_appointments || 0}
+                  color="blue"
+                />
+                <KPICard
+                  title="Total Revenue"
+                  value={dashboardData?.total_revenue || 0}
+                  prefix="₹"
+                  color="purple"
+                />
+              </>
             )}
           </motion.div>
 
@@ -260,15 +254,14 @@ const AnalyticsDashboard = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Appointment Status Distribution
               </h3>
-              <div className="h-80">
-                {loading ? (
-                  <ChartSkeleton />
-                ) : (
+              {loading ? (
+                <ChartSkeleton />
+              ) : (
+                <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-
                     <PieChart>
                       <Pie
-                        data={chartData.appointmentStatusData}
+                        data={chartData?.appointmentStatusData || []}
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
@@ -277,17 +270,16 @@ const AnalyticsDashboard = () => {
                         dataKey="value"
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       >
-                        {chartData.appointmentStatusData.map((entry, index) => (
+                        {chartData?.appointmentStatusData?.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip formatter={(value) => [`${value}`, 'Appointments']} />
                       <Legend />
                     </PieChart>
-
                   </ResponsiveContainer>
-                )}
-              </div>
+                </div>
+              )}
             </motion.div>
 
             {/* Appointment Distribution Bar Chart */}
@@ -298,13 +290,12 @@ const AnalyticsDashboard = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Appointment Distribution
               </h3>
-              <div className="h-80">
-                {loading ? (
-                  <ChartSkeleton />
-                ) : (
+              {loading ? (
+                <ChartSkeleton />
+              ) : (
+                <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-
-                    <BarChart data={chartData.appointmentDistributionData}>
+                    <BarChart data={chartData?.appointmentDistributionData || []}>
                       <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                       <XAxis dataKey="name" />
                       <YAxis />
@@ -315,15 +306,14 @@ const AnalyticsDashboard = () => {
                         name="Appointments"
                         radius={[4, 4, 0, 0]}
                       >
-                        {chartData.appointmentDistributionData.map((entry, index) => (
+                        {chartData?.appointmentDistributionData?.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Bar>
                     </BarChart>
-
                   </ResponsiveContainer>
-                )}
-              </div>
+                </div>
+              )}
             </motion.div>
           </div>
 
