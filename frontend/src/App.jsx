@@ -53,7 +53,10 @@ function App() {
       <Suspense fallback={<Loading />}>
         <Routes>
 
-          {/* Public routes */}
+          {/* Public home page - accessible to all */}
+          <Route path="/" element={<Home />} />
+
+          {/* Public login routes */}
           <Route element={<NotRequireAuth />}>
             <Route path="/login" element={<SignInButton />} />
             <Route path="/doctor/login" element={<DoctorLogin />} />
@@ -82,7 +85,6 @@ function App() {
 
           {/* Doctor / hospital / admin */}
           <Route element={<RequireAuth allowedRoles={["doctor", "hospital", "admin", "staff"]} />}>
-            <Route path="/" element={<AnalyticsDashboard />} />
             <Route path="/dashboard" element={<AnalyticsDashboard />} />
             <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
             <Route path="/patient" element={<Patients />} />

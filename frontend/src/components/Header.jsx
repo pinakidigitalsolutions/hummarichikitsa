@@ -80,7 +80,7 @@ const Header = () => {
                         <NavLink to="/hospitals">Hospitals</NavLink>
 
                         {currentUser?.role === 'doctor' || currentUser?.role === 'hospital' || currentUser?.role === 'admin' || currentUser?.role === 'staff' ? (
-                            <NavLink to="/doctor/dashboard">Dashboard</NavLink>
+                            <NavLink to="/analytics/dashboard">Dashboard</NavLink>
                         ) : (
                             isLoggedIn && (
                                 <NavLink to="/appointments">My Appointments</NavLink>
@@ -133,7 +133,7 @@ const Header = () => {
                             <NavLink to="/hospitals" onClick={closeMenu}>Hospitals</NavLink>
 
                             {currentUser?.role === 'doctor' || currentUser?.role === 'hospital' || currentUser?.role === 'admin' || currentUser?.role === 'staff' ? (
-                                <NavLink to="/doctor/dashboard" onClick={closeMenu}>Dashboard</NavLink>
+                                <NavLink to="/analytics/dashboard" onClick={closeMenu}>Dashboard</NavLink>
                             ) : (
                                 isLoggedIn && (
                                     <NavLink to="/appointments" onClick={closeMenu}>My Appointments</NavLink>
