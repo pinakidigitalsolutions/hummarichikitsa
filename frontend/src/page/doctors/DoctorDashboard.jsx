@@ -792,6 +792,7 @@ import { motion } from 'framer-motion';
 
 const DoctorDashboard = () => {
     const colors = { primary: '#0d9488' };
+    const { todayAppointments } = useSelector((state) => state.appointment || {});
     const [isOpen, setIsOpen] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
     const [message, setMessage] = useState('');
@@ -802,7 +803,7 @@ const DoctorDashboard = () => {
         { id: 3, patient: 'Robert Brown', issue: 'Billing query', priority: 'Low', time: '1 hour ago', status: 'resolved' },
     ]);
     const [showEscalations, setShowEscalations] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(() => !(Array.isArray(todayAppointments) && todayAppointments.length > 0));
 
     const handleSMSSend = () => {
         const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
@@ -811,23 +812,15 @@ const DoctorDashboard = () => {
 
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const [appointments, setAppointments] = useState([]);
+    const [appointments, setAppointments] = useState(() => (Array.isArray(todayAppointments) ? todayAppointments : []));
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterDoctor, setFilterDoctor] = useState('all');
     const [showFilters, setShowFilters] = useState(false);
     const [Doctors, setDoctors] = useState([]);
     const [active, setactive] = useState(true);
-    const [stats, setStats] = useState({
-        total: 0,
-        pending: 0,
-        confirmed: 0,
-        completed: 0,
-        checkIn: 0
-    });
 
     const { isLoggedIn, data } = useSelector((store) => store.LoginAuth || {});
-    const { todayAppointments } = useSelector((state) => state.appointment || {});
     const currentUser = data?.user || {};
     const mergeAppointmentsPreservePaid = useCallback((currentList = [], incomingList = []) => {
         const currentMap = new Map((currentList || []).map((item) => [item?._id, item]));
@@ -844,7 +837,7 @@ const DoctorDashboard = () => {
 
     const filterRef = useRef(null);
 
-    const handleWhatsAppSend = async (a) => {
+    const handleWhatsAppSend = useCallback(async (a) => {
         if (!a?._id || a?.paymentStatus === 'paid') return;
 
         try {
@@ -861,7 +854,12 @@ const DoctorDashboard = () => {
         } catch (error) {
             console.error('Failed to mark as paid:', error);
         }
-    };
+    }, [dispatch]);
+
+    const handleOpenAppointmentDetails = useCallback((appointmentId) => {
+        if (!appointmentId) return;
+        navigate(`/appointment/${appointmentId}`);
+    }, [navigate]);
 
     // Memoized status config
     const statusConfig = useMemo(() => ({
@@ -912,18 +910,6 @@ const DoctorDashboard = () => {
         { value: 'pending', label: 'Pending' },
     ], []);
 
-    // Calculate appointment statistics
-    const calculateStats = useCallback((appointments) => {
-        const stats = {
-            total: appointments?.length || 0,
-            pending: appointments?.filter(a => a.status === 'pending')?.length || 0,
-            confirmed: appointments?.filter(a => a.status === 'confirmed')?.length || 0,
-            completed: appointments?.filter(a => a.status === 'completed')?.length || 0,
-            checkIn: appointments?.filter(a => a.status === 'check-in')?.length || 0
-        };
-        setStats(stats);
-    }, []);
-
     // Optimized getStatus function
     const getStatus = useCallback((appointment) => {
         return appointment.status || 'pending';
@@ -946,57 +932,48 @@ const DoctorDashboard = () => {
             return matchesSearch && matchesFilter && matchesDoctor;
         });
 
-        calculateStats(filtered);
         return filtered;
-    }, [appointments, searchTerm, filterStatus, filterDoctor, calculateStats]);
+    }, [appointments, searchTerm, filterStatus, filterDoctor]);
 
     // Get appointments with status filter
-    const getAppointment = useCallback(async (status = 'all') => {
-        setIsLoading(true);
+    const getAppointment = useCallback(async ({ showLoader = false } = {}) => {
+        if (showLoader && (!appointments || appointments.length === 0)) {
+            setIsLoading(true);
+        }
         try {
             const res = await dispatch(todayAppointment());
             if (res.payload?.appointments) {
                 const incoming = res.payload.appointments;
                 setAppointments((prev) => {
-                    const merged = mergeAppointmentsPreservePaid(prev, incoming);
-                    calculateStats(merged);
-                    return merged;
+                    return mergeAppointmentsPreservePaid(prev, incoming);
                 });
             } else if (res.payload?.data) {
                 const incoming = res.payload.data;
                 setAppointments((prev) => {
-                    const merged = mergeAppointmentsPreservePaid(prev, incoming);
-                    calculateStats(merged);
-                    return merged;
+                    return mergeAppointmentsPreservePaid(prev, incoming);
                 });
             } else {
                 setAppointments([]);
-                calculateStats([]);
             }
         } catch (error) {
             console.error("Error fetching appointments:", error);
             setAppointments([]);
-            calculateStats([]);
         } finally {
             setIsLoading(false);
         }
-    }, [dispatch, calculateStats, mergeAppointmentsPreservePaid]);
+    }, [dispatch, mergeAppointmentsPreservePaid, appointments]);
 
     useEffect(() => {
         if (!Array.isArray(todayAppointments) || todayAppointments.length === 0) return;
 
-        setAppointments((prev) => {
-            const merged = mergeAppointmentsPreservePaid(prev, todayAppointments);
-            calculateStats(merged);
-            return merged;
-        });
-    }, [todayAppointments, mergeAppointmentsPreservePaid, calculateStats]);
+        setAppointments((prev) => mergeAppointmentsPreservePaid(prev, todayAppointments));
+    }, [todayAppointments, mergeAppointmentsPreservePaid]);
 
     // Handle filter change
     const handleFilterChange = useCallback((status) => {
         setFilterStatus(status);
         setShowFilters(false);
-        getAppointment(status === 'all' ? 'all' : status);
+        getAppointment({ showLoader: false });
     }, [getAppointment]);
 
     // Handle doctor filter change
@@ -1153,7 +1130,7 @@ const DoctorDashboard = () => {
             }
 
             try {
-                await getAppointment();
+                await getAppointment({ showLoader: false });
                 await dispatch(getAllAppointment());
                 await dispatch(getAllHospital());
                 await dispatch(getAllDoctors());
@@ -1166,12 +1143,12 @@ const DoctorDashboard = () => {
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
-                getAppointment();
+                getAppointment({ showLoader: false });
             }
         };
 
         const handleFocus = () => {
-            getAppointment();
+            getAppointment({ showLoader: false });
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -1236,7 +1213,7 @@ const DoctorDashboard = () => {
         </div>
     );
 
-    const AppointmentRow = React.memo(({ appointment, index, ConfirmAppointment, getStatus, statusConfig, getButtonText }) => {
+    const AppointmentRow = useMemo(() => React.memo(({ appointment, index, ConfirmAppointment, getStatus, statusConfig, getButtonText, onMarkPaid }) => {
         const status = getStatus(appointment);
         const statusStyle = statusConfig[status] || statusConfig.pending;
 
@@ -1319,7 +1296,7 @@ const DoctorDashboard = () => {
                         )}
 
                         <button
-                            onClick={() => handleWhatsAppSend(appointment)}
+                            onClick={() => onMarkPaid(appointment)}
                             className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${appointment?.paymentStatus === 'paid'
                                 ? 'bg-green-100 text-green-700'
                                 : 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -1335,15 +1312,15 @@ const DoctorDashboard = () => {
                 </td>
             </tr>
         );
-    });
+    }), []);
 
-    const MobileAppointmentCard = React.memo(({ appointment, index, ConfirmAppointment, getStatus, statusConfig, getButtonText }) => {
+    const MobileAppointmentCard = useMemo(() => React.memo(({ appointment, index, ConfirmAppointment, getStatus, statusConfig, getButtonText, onMarkPaid, onOpenDetails }) => {
         const status = getStatus(appointment);
         const statusStyle = statusConfig[status] || statusConfig.pending;
 
         return (
             <div
-                onClick={() => navigate(`/appointment/${appointment?._id}`)}
+                onClick={() => onOpenDetails(appointment?._id)}
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
             >
                 <div className="flex justify-between items-start mb-3">
@@ -1435,7 +1412,7 @@ const DoctorDashboard = () => {
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleWhatsAppSend(appointment);
+                            onMarkPaid(appointment);
                         }}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 ${appointment?.paymentStatus === 'paid'
                             ? 'bg-green-100 text-green-700'
@@ -1447,7 +1424,7 @@ const DoctorDashboard = () => {
                 </div>
             </div>
         );
-    });
+    }), []);
 
     return (
         <Dashboard>
@@ -1612,6 +1589,8 @@ const DoctorDashboard = () => {
                                                         getStatus={getStatus}
                                                         statusConfig={statusConfig}
                                                         getButtonText={getButtonText}
+                                                        onMarkPaid={handleWhatsAppSend}
+                                                        onOpenDetails={handleOpenAppointmentDetails}
                                                     />
                                                 ))
                                             ) : (
@@ -1665,6 +1644,7 @@ const DoctorDashboard = () => {
                                                                     getStatus={getStatus}
                                                                     statusConfig={statusConfig}
                                                                     getButtonText={getButtonText}
+                                                                    onMarkPaid={handleWhatsAppSend}
                                                                 />
                                                             ))
                                                         ) : (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAppointmentById, markAppointmentPaid } from '../../Redux/appointment';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUser, FaUserMd, FaCalendarAlt, FaClock, FaMoneyBillWave, FaPhone, FaFileAlt, FaHospital, FaDownload } from 'react-icons/fa';
@@ -10,12 +10,17 @@ import { IoArrowBackCircle } from "react-icons/io5";
 import { jsPDF } from 'jspdf';
 import socket from '../../Helper/socket';
 const AppointmentDetails = () => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [appointment, setAppointments] = useState(null);
+    const { appointment: allAppointments, todayAppointments } = useSelector((state) => state.appointment || {});
     const [whatsaapmessage, setwhatsaapMessage] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [targetMobile, setTargetMobile] = useState('');
     const { id } = useParams();
+    const cachedAppointment =
+        (todayAppointments || []).find((item) => item?._id === id) ||
+        (allAppointments || []).find((item) => item?._id === id) ||
+        null;
+    const [appointment, setAppointments] = useState(cachedAppointment);
+    const [isLoading, setIsLoading] = useState(!cachedAppointment);
     const dispatch = useDispatch();
     const navigate = useNavigate()
 
@@ -150,19 +155,35 @@ Thank you – Hummari Chikitsa
         cardBg: '#ffffff'         // White cards
     };
 
-    const getAppointment = async () => {
-        setIsLoading(true);
+    const getAppointment = async ({ showLoader = false } = {}) => {
+        if (showLoader && !appointment) {
+            setIsLoading(true);
+        }
         try {
             const res = await dispatch(getAppointmentById(id));
-            setAppointments(res.payload);
+            if (res?.payload) {
+                setAppointments((prev) => {
+                    if (!prev) return res.payload;
+
+                    const merged = { ...prev, ...res.payload };
+                    if (prev?.paymentStatus === 'paid' && res.payload?.paymentStatus !== 'paid') {
+                        merged.paymentStatus = 'paid';
+                    }
+                    return merged;
+                });
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        getAppointment();
-    }, []);
+        if (cachedAppointment) {
+            setAppointments((prev) => ({ ...(cachedAppointment || {}), ...(prev || {}) }));
+            setIsLoading(false);
+        }
+        getAppointment({ showLoader: !cachedAppointment });
+    }, [id]);
 
     useEffect(() => {
         const handleAppointmentUpdate = (updatedAppointment) => {
@@ -187,12 +208,12 @@ Thank you – Hummari Chikitsa
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
-                getAppointment();
+                getAppointment({ showLoader: false });
             }
         };
 
         const handleFocus = () => {
-            getAppointment();
+            getAppointment({ showLoader: false });
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
