@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Dashboard from '../../components/Layout/Dashboard';
 import { useDispatch, useSelector } from 'react-redux';
-import { AppointmentConferm, getAllAppointment } from '../../Redux/appointment';
+import { AppointmentConferm, getAllAppointment, mergeAppointmentFromSocket } from '../../Redux/appointment';
 import { Calendar, Clock, User, Search, CheckCircle, XCircle, CircleCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import socket from '../../Helper/socket';
 
 const Patients = () => {
     const dispatch = useDispatch();
@@ -64,6 +65,24 @@ const Patients = () => {
             setIsLoading(false);
         }
     }, []); // Empty dependency array - fetch only once on mount
+
+    useEffect(() => {
+        const handleAppointmentUpdate = (updatedAppointment) => {
+            dispatch(mergeAppointmentFromSocket(updatedAppointment));
+        };
+
+        const handleAppointmentCreate = (createdAppointment) => {
+            dispatch(mergeAppointmentFromSocket(createdAppointment));
+        };
+
+        socket.on('appointmentUpdate', handleAppointmentUpdate);
+        socket.on('createAppointment', handleAppointmentCreate);
+
+        return () => {
+            socket.off('appointmentUpdate', handleAppointmentUpdate);
+            socket.off('createAppointment', handleAppointmentCreate);
+        };
+    }, [dispatch]);
 
     // Filter appointments based on search and selected date
     const filteredAppointments = appointments?.filter(appointment => {

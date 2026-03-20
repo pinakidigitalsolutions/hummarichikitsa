@@ -20,8 +20,12 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Cache GET requests only
-    if (config.method === "get") {
+    const requestUrl = config.url || "";
+    const isDynamicAppointmentEndpoint = /\/appointment(\/|$)/.test(requestUrl);
+    const shouldSkipCache = config.skipCache === true || isDynamicAppointmentEndpoint;
+
+    // Cache GET requests only (except dynamic endpoints)
+    if (config.method === "get" && !shouldSkipCache) {
       const cacheKey = `${config.url}?${new URLSearchParams(config.params || {}).toString()}`;
       const cachedData = requestCache.get(cacheKey);
 
@@ -48,8 +52,12 @@ axiosInstance.interceptors.request.use(
 // Response interceptor to cache successful GET requests
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Cache GET requests
-    if (response.config.method === "get") {
+    const responseUrl = response.config.url || "";
+    const isDynamicAppointmentEndpoint = /\/appointment(\/|$)/.test(responseUrl);
+    const shouldSkipCache = response.config.skipCache === true || isDynamicAppointmentEndpoint;
+
+    // Cache GET requests (except dynamic endpoints)
+    if (response.config.method === "get" && !shouldSkipCache) {
       const cacheKey = `${response.config.url}?${new URLSearchParams(
         response.config.params || {}
       ).toString()}`;

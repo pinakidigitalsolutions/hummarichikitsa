@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
-import { getAppointmentById } from '../../Redux/appointment';
-import { useDispatch, useSelector } from 'react-redux';
+import { getAppointmentById, markAppointmentPaid } from '../../Redux/appointment';
+import { useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUser, FaUserMd, FaCalendarAlt, FaClock, FaMoneyBillWave, FaPhone, FaFileAlt, FaHospital, FaDownload } from 'react-icons/fa';
 import { IoMdCheckmarkCircle, IoMdCloseCircle } from 'react-icons/io';
 import Dashboard from '../../components/Layout/Dashboard';
 import { IoArrowBackCircle } from "react-icons/io5";
-import axiosInstance from '../../Helper/axiosInstance';
-import toast from 'react-hot-toast';
 import { jsPDF } from 'jspdf';
+import socket from '../../Helper/socket';
 const AppointmentDetails = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [appointment, setAppointments] = useState(null);
@@ -19,6 +18,11 @@ const AppointmentDetails = () => {
     const { id } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate()
+
+    const formatStatusText = (status) => {
+        if (!status) return '';
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    };
 
     const getFormattedMessage = (data) => {
         const timeSlot =
@@ -37,7 +41,7 @@ Date: ${data.date}
 Time: ${timeSlot}
 
 Booking Amount: ₹${data.booking_amount}
-Payment: ${data.paymentStatus}
+Payment: ${formatStatusText(data.paymentStatus)}
 
 Track or manage your booking:
 https://hummarichikitsa.vercel.app
@@ -64,16 +68,13 @@ Thank you – Hummari Chikitsa
 
     const handleMarkAsPaid = async () => {
         try {
-            const res = await axiosInstance.post('/doctor/changeStatus', {
-                appointmentId: appointment._id
-            });
-            if (res.data.success) {
-                toast.success("Payment status updated!");
-                getAppointment(); // Refresh data
+            const res = await dispatch(markAppointmentPaid(appointment._id));
+
+            if (markAppointmentPaid.fulfilled.match(res) && res.payload?.appointment) {
+                setAppointments((prev) => ({ ...prev, ...res.payload.appointment }));
             }
         } catch (error) {
             console.error("Error updating payment status:", error);
-            toast.error("Failed to update payment status");
         }
     };
 
@@ -125,7 +126,7 @@ Thank you – Hummari Chikitsa
         doc.text("Payment Summary", 20, 165);
         doc.setFontSize(12);
         doc.text(`Amount Paid: Rs. ${appointment?.booking_amount}`, 20, 175);
-        doc.text(`Payment Status: ${appointment?.paymentStatus}`, 20, 185);
+        doc.text(`Payment Status: ${formatStatusText(appointment?.paymentStatus)}`, 20, 185);
         doc.text(`Payment Method: ${appointment?.paymentMethod || 'Cash'}`, 20, 195);
 
         // Footer
@@ -162,6 +163,46 @@ Thank you – Hummari Chikitsa
     useEffect(() => {
         getAppointment();
     }, []);
+
+    useEffect(() => {
+        const handleAppointmentUpdate = (updatedAppointment) => {
+            if (updatedAppointment?._id === id) {
+                setAppointments((prev) => {
+                    const merged = { ...prev, ...updatedAppointment };
+                    if (prev?.paymentStatus === 'paid' && updatedAppointment?.paymentStatus !== 'paid') {
+                        merged.paymentStatus = 'paid';
+                    }
+                    return merged;
+                });
+            }
+        };
+
+        socket.on('appointmentUpdate', handleAppointmentUpdate);
+
+        return () => {
+            socket.off('appointmentUpdate', handleAppointmentUpdate);
+        };
+    }, [id]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                getAppointment();
+            }
+        };
+
+        const handleFocus = () => {
+            getAppointment();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [id]);
 
 
     const formatDate = (dateString) => {
@@ -406,7 +447,7 @@ Thank you – Hummari Chikitsa
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Payment Status</p>
-                                            <p className="font-medium text-green-600">{appointment?.paymentStatus}</p>
+                                            <p className="font-medium text-green-600">{formatStatusText(appointment?.paymentStatus)}</p>
                                         </div>
                                     </div>
                                 )}

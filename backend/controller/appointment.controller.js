@@ -14,8 +14,30 @@ const razorpay = new Razorpay({
 });
 
 export const createAppointment = async (req, res) => {
-    const today = new Date();
-    const formatted = today.toISOString().split("T")[0];
+    const formatLocalDate = (inputDate) => {
+        const date = new Date(inputDate);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const formatted = formatLocalDate(new Date());
+        const getDayNameFromDate = (inputDate) => {
+            const date = new Date(inputDate);
+            return date.toLocaleDateString('en-US', { weekday: 'long' });
+        };
+    const formatTimeTo12Hour = (time24) => {
+        if (!time24 || typeof time24 !== 'string') return '';
+        const [hours, minutes] = time24.split(':').map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return '';
+
+        const period = hours >= 12 ? 'PM' : 'AM';
+        let hours12 = hours % 12;
+        hours12 = hours12 === 0 ? 12 : hours12;
+        return `${hours12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
+    };
+
     function getSlot(bookedCount, startH) {
         const maxPerSlot = 5;
         const slotDuration = 15;
@@ -56,6 +78,8 @@ export const createAppointment = async (req, res) => {
             hospitalId,
             date,
             slot,
+            startTime,
+            endTime,
             amount,
             booking_amount,
             paymentStatus
@@ -90,13 +114,61 @@ export const createAppointment = async (req, res) => {
             })
         }
 
-        const getAppointment = await apponitment.find({
+        const existingAppointments = await apponitment.find({
             doctorId: doctorId,
             date: date
         });
-        
-        const slo = getSlot(getAppointment.length, parseInt(slot.split(":")[0]));
-        const slotString = `${slo.start} - ${slo.end}`;
+
+        let slotString = typeof slot === 'string' ? slot.trim() : '';
+
+        if (!slotString && startTime && endTime) {
+            const start = formatTimeTo12Hour(startTime);
+            const end = formatTimeTo12Hour(endTime);
+            if (start && end) {
+                slotString = `${start} - ${end}`;
+            }
+        }
+
+        const dayName = getDayNameFromDate(date);
+        const daySchedule = doctor?.weeklySchedule?.get
+            ? doctor.weeklySchedule.get(dayName)
+            : doctor?.weeklySchedule?.[dayName];
+
+        const matchedSlot = daySchedule?.slots?.find((weekSlot) => {
+            if (!weekSlot) return false;
+
+            if (startTime && endTime) {
+                return weekSlot.startTime === startTime && weekSlot.endTime === endTime;
+            }
+
+            const weekSlotString = `${formatTimeTo12Hour(weekSlot.startTime)} - ${formatTimeTo12Hour(weekSlot.endTime)}`;
+            return weekSlotString === slotString;
+        });
+
+        if (matchedSlot && matchedSlot.bookingEnabled === false) {
+            return res.status(400).json({
+                success: false,
+                message: "No more booking for this time slot"
+            });
+        }
+
+        if (matchedSlot && Number.isInteger(matchedSlot.maxAppointments) && matchedSlot.maxAppointments > 0) {
+            const bookedCountForSlot = existingAppointments.filter((appointment) => appointment.slot === slotString).length;
+
+            if (bookedCountForSlot >= matchedSlot.maxAppointments) {
+                return res.status(400).json({
+                    success: false,
+                    message: "This time slot is fully booked"
+                });
+            }
+        }
+
+        if (!slotString) {
+            const fallbackStartHour = Number.isNaN(parseInt(startTime, 10)) ? 9 : parseInt(startTime, 10);
+            const slo = getSlot(existingAppointments.length, fallbackStartHour);
+            slotString = `${slo.start} - ${slo.end}`;
+        }
+
         const newAppointment = new apponitment({
             patient,
             mobile,
@@ -108,14 +180,15 @@ export const createAppointment = async (req, res) => {
             slot: slotString,
             amount,
             booking_amount,
-            appointmentNumber: getAppointment.length + 1
+            paymentMethod: 'Cash',
+            paymentStatus: 'pending',
+            appointmentNumber: existingAppointments.length + 1
         });
         const savedAppointment = await newAppointment.save();
-        newAppointment.paymentMethod = 'Cash'
-        newAppointment.paymentStatus = 'pending'
-        await newAppointment.save();
 
-        if (date == formatted) {
+        const appointmentDate = typeof date === 'string' ? date.split('T')[0] : formatLocalDate(date);
+
+        if (appointmentDate === formatted) {
             io.emit("createAppointment", savedAppointment)
         }
         return res.status(201).json({
@@ -396,9 +469,12 @@ export const cancelAppointment = async (req, res) => {
         appointment.status = "cancelled";
         const updatedAppointment = await appointment.save();
 
+        io.emit("appointmentUpdate", updatedAppointment);
+
         return res.status(200).json({
             success: true,
-            message: "Appointment cancelled successfully."
+            message: "Appointment cancelled successfully.",
+            appointment: updatedAppointment
         });
     } catch (error) {
         return res.status(500).json({ message: error.message });

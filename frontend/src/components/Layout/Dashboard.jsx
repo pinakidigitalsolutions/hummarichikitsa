@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Calendar, Clock, User, FileText, Settings, LogOut } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Logout } from '../../Redux/doctorSlice';
 import avatar from '../../../src/assets/logo-def.png';
 import { AuthMe } from '../../Redux/AuthLoginSlice';
@@ -9,7 +9,9 @@ import { AuthMe } from '../../Redux/AuthLoginSlice';
 const Dashboard = ({ children }) => {
   const { isLoggedIn, role, data } = useSelector((state) => state?.LoginAuth || {});
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
+  const contentRef = useRef(null);
   const [userData, setUserData] = useState({});
   const [userRole, setUserRole] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,6 +40,13 @@ const Dashboard = ({ children }) => {
       }
     }
   }, [dispatch, data, role]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if (contentRef.current) {
+      contentRef.current.scrollTo(0, 0);
+    }
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     const res = await dispatch(Logout());
@@ -238,7 +247,7 @@ const Dashboard = ({ children }) => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1  overflow-auto">
+        <div ref={contentRef} className="flex-1 overflow-auto">
           {children}
         </div>
       </div>

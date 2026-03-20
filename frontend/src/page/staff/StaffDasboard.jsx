@@ -78,9 +78,15 @@ const StaffDasboard = () => {
 
   const ConfirmAppointment = async (appointment_id) => {
     try {
-      await dispatch(AppointmentConferm(appointment_id));
-      socket.emit("appointmentUpdate", { appointment_id });
-      getAppointment();
+      const res = await dispatch(AppointmentConferm(appointment_id));
+
+      if (AppointmentConferm.fulfilled.match(res) && res.payload?._id) {
+        setAppointments((prev) => {
+          const exists = prev.some((item) => item?._id === res.payload._id);
+          if (!exists) return prev;
+          return prev.map((item) => (item?._id === res.payload._id ? { ...item, ...res.payload } : item));
+        });
+      }
     } catch (error) {
       console.error("Error confirming appointment:", error);
     }
@@ -158,7 +164,11 @@ const StaffDasboard = () => {
     const fetchData = async () => {
       try {
         await axiosInstance.patch('/appointment/hospital/patient');
-        // Fetch today's appointments
+      } catch (error) {
+        console.warn("Skipping unavailable sync endpoint /appointment/hospital/patient");
+      }
+
+      try {
         await getAppointment();
         await dispatch(getAllDoctors());
       } catch (error) {

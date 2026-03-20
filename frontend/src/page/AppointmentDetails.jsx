@@ -29,6 +29,9 @@ const AppointmentDetailsPage = () => {
     };
 
     useEffect(() => {
+        if (window.innerWidth < 768) {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        }
         getAppointment();
     }, []);
 

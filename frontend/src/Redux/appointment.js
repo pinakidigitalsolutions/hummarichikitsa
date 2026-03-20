@@ -80,9 +80,27 @@ export const AppointmentCancelled = createAsyncThunk(
     }
 );
 
+export const markAppointmentPaid = createAsyncThunk(
+    "appointment/markPaid",
+    async (appointmentId, { rejectWithValue }) => {
+        try {
+            const response = axiosInstance.post('/doctor/changeStatus', { appointmentId });
+            toast.promise(response, {
+                loading: "Updating payment status...",
+                success: (data) => data?.data?.message || "Payment updated",
+                error: (error) => error?.response?.data?.message || "Failed to update payment status"
+            });
+
+            return (await response).data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to update payment status");
+        }
+    }
+);
+
 export const todayAppointment = createAsyncThunk('/today/appintment',async()=>{
        try {
-            const response = axiosInstance.get('/appointment/today');
+            const response = axiosInstance.get('/appointment/today', { skipCache: true });
             return (await response)?.data
         } catch (error) {
             return toast.error(error.response?.data?.message);
@@ -91,7 +109,7 @@ export const todayAppointment = createAsyncThunk('/today/appintment',async()=>{
 
 export const getAppointmentById = createAsyncThunk('/get/appintment',async(id)=>{
        try {
-            const response = axiosInstance.get(`/appointment/${id}`);
+            const response = axiosInstance.get(`/appointment/${id}`, { skipCache: true });
             return (await response)?.data
         } catch (error) {
             return toast.error(error.response?.data?.message);
@@ -102,7 +120,7 @@ export const getAllAppointment = createAsyncThunk(
     "appointment/getAll", // Changed to match slice name "appointment"
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axiosInstance.get("/appointment/");
+            const response = await axiosInstance.get("/appointment/", { skipCache: true });
             // console.log("Appointment data from API:", response.data); // Log API response
             return response.data;
         } catch (error) {
@@ -115,6 +133,22 @@ const appointmentSlice = createSlice({
     name: "appointment",
     initialState,
     reducers: {
+        mergeAppointmentFromSocket: (state, action) => {
+            const updatedAppointment = action.payload;
+            if (!updatedAppointment?._id) return;
+
+            const index = state.appointment.findIndex((item) => item?._id === updatedAppointment._id);
+            if (index !== -1) {
+                state.appointment[index] = { ...state.appointment[index], ...updatedAppointment };
+            } else {
+                state.appointment.unshift(updatedAppointment);
+            }
+
+            const todayIndex = state.todayAppointments.findIndex((item) => item?._id === updatedAppointment._id);
+            if (todayIndex !== -1) {
+                state.todayAppointments[todayIndex] = { ...state.todayAppointments[todayIndex], ...updatedAppointment };
+            }
+        },
         clearTodayAppointments: (state) => {
             state.todayAppointments = [];
             state.todayFetchTime = null;
@@ -155,9 +189,48 @@ const appointmentSlice = createSlice({
             .addCase(todayAppointment.rejected, (state, action) => {
                 state.todayLoading = false;
                 state.error = action.payload;
+            })
+            .addCase(AppointmentCreate.fulfilled, (state, action) => {
+                const createdAppointment = action.payload?.savedAppointment;
+                if (createdAppointment?._id) {
+                    state.appointment.unshift(createdAppointment);
+                }
+            })
+            .addCase(AppointmentConferm.fulfilled, (state, action) => {
+                const updatedAppointment = action.payload;
+                if (!updatedAppointment?._id) return;
+
+                state.appointment = state.appointment.map((item) =>
+                    item?._id === updatedAppointment._id ? { ...item, ...updatedAppointment } : item
+                );
+                state.todayAppointments = state.todayAppointments.map((item) =>
+                    item?._id === updatedAppointment._id ? { ...item, ...updatedAppointment } : item
+                );
+            })
+            .addCase(AppointmentCancelled.fulfilled, (state, action) => {
+                const updatedAppointment = action.payload?.appointment;
+                if (!updatedAppointment?._id) return;
+
+                state.appointment = state.appointment.map((item) =>
+                    item?._id === updatedAppointment._id ? { ...item, ...updatedAppointment } : item
+                );
+                state.todayAppointments = state.todayAppointments.map((item) =>
+                    item?._id === updatedAppointment._id ? { ...item, ...updatedAppointment } : item
+                );
+            })
+            .addCase(markAppointmentPaid.fulfilled, (state, action) => {
+                const updatedAppointment = action.payload?.appointment;
+                if (!updatedAppointment?._id) return;
+
+                state.appointment = state.appointment.map((item) =>
+                    item?._id === updatedAppointment._id ? { ...item, ...updatedAppointment } : item
+                );
+                state.todayAppointments = state.todayAppointments.map((item) =>
+                    item?._id === updatedAppointment._id ? { ...item, ...updatedAppointment } : item
+                );
             });
     },
 });
 
-export const { clearTodayAppointments, clearAllAppointments } = appointmentSlice.actions;
+export const { mergeAppointmentFromSocket, clearTodayAppointments, clearAllAppointments } = appointmentSlice.actions;
 export default appointmentSlice.reducer;

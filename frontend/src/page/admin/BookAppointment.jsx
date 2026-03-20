@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { GetDoctorHospitalId, getAllDoctors } from '../../Redux/doctorSlice';
 import { AppointmentCreate } from '../../Redux/appointment';
@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 
 function BookAppointment() {
   const colors = { primary: '#0d9488' };
+  const MAX_AGE = 150;
   const [isOpen, setIsOpen] = useState(false);
   const [whatsaapmessage, setwhatsaapMessage] = useState('');
   const [targetMobile, setTargetMobile] = useState('');
@@ -123,6 +124,7 @@ Thank you – Hummari Chikitsa
   const { doctors } = useSelector(state => state.doctors);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [activeSection, setActiveSection] = useState('patient');
+  const formScrollRef = useRef(null);
   const [loading, setLoading] = useState({
     doctors: false,
     submitting: false
@@ -278,6 +280,16 @@ useEffect(() => {
 }, [dispatch, decoded?.role]);
 
   useEffect(() => {
+    if (window.innerWidth >= 768) return;
+
+    if (formScrollRef.current) {
+      formScrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [activeSection]);
+
+  useEffect(() => {
     if (decoded?.role !== 'doctor' || !Array.isArray(doctors) || doctors.length === 0) {
       return;
     }
@@ -388,10 +400,15 @@ useEffect(() => {
 
   const validateForm = () => {
     const newErrors = {};
+    const age = Number(formData.dob);
 
     if (!formData.patient.trim()) newErrors.patient = 'Patient name is required';
     if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
     if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Invalid mobile number';
+    if (!formData.dob) newErrors.dob = 'Age is required';
+    if (formData.dob && (!Number.isInteger(age) || age <= 0 || age > MAX_AGE)) {
+      newErrors.dob = `Age must be between 1 and ${MAX_AGE}`;
+    }
     if (!formData.doctorId) newErrors.doctorId = 'Please select a doctor';
     if (!selectedDate) newErrors.date = 'Please select a date';
     if (!selectedSlot) newErrors.slot = 'Please select a time slot';
@@ -606,7 +623,7 @@ useEffect(() => {
                 })}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
+              <div ref={formScrollRef} className="flex-1 overflow-y-auto p-4">
                 {errors.form && (
                   <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded flex items-center text-sm">
                     <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -674,15 +691,18 @@ useEffect(() => {
                           name="dob"
                           value={formData.dob}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                          placeholder="Patient's age"
+                          placeholder={`Patient's age`}
                           required
                           onChange={(e) => {
                             const value = e.target.value;
-                            if (/^\d*$/.test(value)) {
+                            if (/^\d*$/.test(value) && value.length <= 3) {
+                              if (value === '' || Number(value) <= MAX_AGE) {
                               handleChange(e);
+                              }
                             }
                           }}
                         />
+                        {errors.dob && <p className="mt-1 text-xs text-red-600">{errors.dob}</p>}
                       </div>
 
                       <div className="flex justify-end pt-2">
@@ -690,10 +710,14 @@ useEffect(() => {
                           type="button"
                           onClick={() => {
                             const newErrors = {};
+                            const age = Number(formData.dob);
                             if (!formData.patient.trim()) newErrors.patient = 'Patient name is required';
                             if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
                             if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Invalid mobile number';
                             if (!formData.dob) newErrors.dob = 'Age is required';
+                            if (formData.dob && (!Number.isInteger(age) || age <= 0 || age > MAX_AGE)) {
+                              newErrors.dob = `Age must be between 1 and ${MAX_AGE}`;
+                            }
                             
                             if (Object.keys(newErrors).length > 0) {
                               setErrors(prev => ({ ...prev, ...newErrors }));
@@ -703,7 +727,7 @@ useEffect(() => {
                           }}
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-400"
                         >
-                          Next: Appointment Details
+                          Next
                         </button>
                       </div>
                     </div>
@@ -866,7 +890,7 @@ useEffect(() => {
                           onClick={() => setActiveSection('patient')}
                           className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
                         >
-                          Back to Patient Details
+                          Back
                         </button>
                         <button
                           type="button"
@@ -884,7 +908,7 @@ useEffect(() => {
                           }}
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-400"
                         >
-                          Next: Payment
+                          Next
                         </button>
                       </div>
                     </div>
@@ -944,7 +968,7 @@ useEffect(() => {
                           onClick={() => setActiveSection('appointment')}
                           className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
                         >
-                          Back to Appointment
+                          Back
                         </button>
                         <button
                           type="submit"

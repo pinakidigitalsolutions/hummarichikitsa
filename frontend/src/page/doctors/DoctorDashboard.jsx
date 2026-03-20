@@ -780,7 +780,7 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, FileText, Search, CheckCircle, XCircle, ChevronRight, Filter, AlertCircle, Download, MoreVertical, Printer, Eye, Edit, Trash2, Phone, MessageSquare, Bell, BarChart3, TrendingUp, Plus } from 'lucide-react';
-import { AppointmentConferm, getAllAppointment, todayAppointment } from '../../Redux/appointment';
+import { AppointmentConferm, getAllAppointment, markAppointmentPaid, todayAppointment } from '../../Redux/appointment';
 import { getAllHospital } from '../../Redux/hospitalSlice';
 import { getAllDoctors, GetDoctorHospitalId } from '../../Redux/doctorSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -827,16 +827,40 @@ const DoctorDashboard = () => {
     });
 
     const { isLoggedIn, data } = useSelector((store) => store.LoginAuth || {});
+    const { todayAppointments } = useSelector((state) => state.appointment || {});
     const currentUser = data?.user || {};
+    const mergeAppointmentsPreservePaid = useCallback((currentList = [], incomingList = []) => {
+        const currentMap = new Map((currentList || []).map((item) => [item?._id, item]));
+
+        return (incomingList || []).map((incomingItem) => {
+            const existingItem = currentMap.get(incomingItem?._id);
+            if (existingItem?.paymentStatus === 'paid' && incomingItem?.paymentStatus !== 'paid') {
+                return { ...incomingItem, paymentStatus: 'paid' };
+            }
+            return incomingItem;
+        });
+    }, []);
+
 
     const filterRef = useRef(null);
 
     const handleWhatsAppSend = async (a) => {
-        const res = await axiosInstance.post('/doctor/changeStatus', {
-            appointmentId: a._id
-        });
-        await getAppointment();
-        await dispatch(getAllAppointment());
+        if (!a?._id || a?.paymentStatus === 'paid') return;
+
+        try {
+            const res = await dispatch(markAppointmentPaid(a._id));
+
+            if (markAppointmentPaid.fulfilled.match(res) && res.payload?.appointment?._id) {
+                const updatedAppointment = res.payload.appointment;
+                setAppointments((prev) =>
+                    prev.map((item) =>
+                        item?._id === updatedAppointment._id ? { ...item, ...updatedAppointment } : item
+                    )
+                );
+            }
+        } catch (error) {
+            console.error('Failed to mark as paid:', error);
+        }
     };
 
     // Memoized status config
@@ -932,11 +956,19 @@ const DoctorDashboard = () => {
         try {
             const res = await dispatch(todayAppointment());
             if (res.payload?.appointments) {
-                setAppointments(res.payload.appointments);
-                calculateStats(res.payload.appointments);
+                const incoming = res.payload.appointments;
+                setAppointments((prev) => {
+                    const merged = mergeAppointmentsPreservePaid(prev, incoming);
+                    calculateStats(merged);
+                    return merged;
+                });
             } else if (res.payload?.data) {
-                setAppointments(res.payload.data);
-                calculateStats(res.payload.data);
+                const incoming = res.payload.data;
+                setAppointments((prev) => {
+                    const merged = mergeAppointmentsPreservePaid(prev, incoming);
+                    calculateStats(merged);
+                    return merged;
+                });
             } else {
                 setAppointments([]);
                 calculateStats([]);
@@ -948,7 +980,17 @@ const DoctorDashboard = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [dispatch, calculateStats]);
+    }, [dispatch, calculateStats, mergeAppointmentsPreservePaid]);
+
+    useEffect(() => {
+        if (!Array.isArray(todayAppointments) || todayAppointments.length === 0) return;
+
+        setAppointments((prev) => {
+            const merged = mergeAppointmentsPreservePaid(prev, todayAppointments);
+            calculateStats(merged);
+            return merged;
+        });
+    }, [todayAppointments, mergeAppointmentsPreservePaid, calculateStats]);
 
     // Handle filter change
     const handleFilterChange = useCallback((status) => {
@@ -967,25 +1009,13 @@ const DoctorDashboard = () => {
         try {
             const res = await dispatch(AppointmentConferm(appointment_id));
 
-            if (!res.payload.success) {
-                setAppointments(prev => prev.map(app =>
-                    app._id === appointment_id
-                        ? { ...app }
-                        : app
-                ));
-                return;
+            if (AppointmentConferm.fulfilled.match(res) && res.payload?._id) {
+                setAppointments((prev) =>
+                    prev.map((app) =>
+                        app?._id === res.payload._id ? { ...app, ...res.payload } : app
+                    )
+                );
             }
-
-            socket.emit("appointmentUpdate", { appointment_id });
-
-            setAppointments(prev => prev.map(app =>
-                app._id === appointment_id
-                    ? {
-                        ...app,
-                        status: getNextStatus(app.status)
-                    }
-                    : app
-            ));
 
         } catch (error) {
             console.error("Error confirming appointment:", error);
@@ -1037,9 +1067,15 @@ const DoctorDashboard = () => {
     useEffect(() => {
         const handleAppointmentUpdate = (data) => {
             setAppointments(prev => {
-                const exists = prev.some(a => a._id === data._id);
-                if (exists) {
-                    return prev.map(a => (a._id === data._id ? { ...a, ...data } : a));
+                const existing = prev.find((a) => a?._id === data?._id);
+                if (existing) {
+                    const merged = { ...existing, ...data };
+
+                    if (existing.paymentStatus === 'paid' && data.paymentStatus !== 'paid') {
+                        merged.paymentStatus = 'paid';
+                    }
+
+                    return prev.map((a) => (a?._id === data?._id ? merged : a));
                 }
                 return [...prev, data];
             });
@@ -1110,20 +1146,42 @@ const DoctorDashboard = () => {
 
     useEffect(() => {
         (async () => {
-            // Only fetch if appointments is empty
-            if (!appointments || appointments.length === 0) {
-                try {
-                    await axiosInstance.patch('/appointment/hospital/patient');
-                    await getAppointment();
-                    await dispatch(getAllAppointment());
-                    await dispatch(getAllHospital());
-                    await dispatch(getAllDoctors());
-                } catch (error) {
-                    console.error("Error loading data:", error);
-                }
+            try {
+                await axiosInstance.patch('/appointment/hospital/patient');
+            } catch (error) {
+                console.warn("Skipping unavailable sync endpoint /appointment/hospital/patient");
+            }
+
+            try {
+                await getAppointment();
+                await dispatch(getAllAppointment());
+                await dispatch(getAllHospital());
+                await dispatch(getAllDoctors());
+            } catch (error) {
+                console.error("Error loading data:", error);
             }
         })()
-    }, []); // Empty dependency array - fetch only once on mount
+    }, [dispatch, getAppointment]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                getAppointment();
+            }
+        };
+
+        const handleFocus = () => {
+            getAppointment();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [getAppointment]);
 
     // Loading Component
     const LoadingScreen = () => (
@@ -1263,11 +1321,11 @@ const DoctorDashboard = () => {
                         <button
                             onClick={() => handleWhatsAppSend(appointment)}
                             className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${appointment?.paymentStatus === 'paid'
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                ? 'bg-green-100 text-green-700'
                                 : 'bg-red-100 text-red-700 hover:bg-red-200'
                                 }`}
                         >
-                            {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
+                            {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark as Paid'}
                         </button>
 
                         <button className="p-1.5 sm:p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors" title="More">
@@ -1380,11 +1438,11 @@ const DoctorDashboard = () => {
                             handleWhatsAppSend(appointment);
                         }}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 ${appointment?.paymentStatus === 'paid'
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            ? 'bg-green-100 text-green-700'
                             : 'bg-red-100 text-red-700 hover:bg-red-200'
                             }`}
                     >
-                        {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark Paid'}
+                        {appointment?.paymentStatus === 'paid' ? 'Paid' : 'Mark as Paid'}
                     </button>
                 </div>
             </div>

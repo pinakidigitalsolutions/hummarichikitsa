@@ -3,9 +3,11 @@ import axiosInstance from '../../Helper/axiosInstance';
 import toast from 'react-hot-toast'
 import Dashboard from '../../components/Layout/Dashboard';
 class Slot {
-    constructor(startTime = "10:00", endTime = "20:00") {
+    constructor(startTime = "10:00", endTime = "20:00", maxAppointments = null, bookingEnabled = true) {
         this.startTime = startTime;
         this.endTime = endTime;
+        this.maxAppointments = Number.isInteger(maxAppointments) && maxAppointments > 0 ? maxAppointments : null;
+        this.bookingEnabled = bookingEnabled !== false;
         // Also store as open/close for compatibility with existing code
         this.open = startTime;
         this.close = endTime;
@@ -41,7 +43,12 @@ class DaySchedule {
         // Convert slots from backend format (startTime, endTime) to our Slot class
         if (data?.slots && Array.isArray(data.slots)) {
             this.slots = data.slots.map(slot =>
-                new Slot(slot.startTime, slot.endTime)
+                new Slot(
+                    slot.startTime,
+                    slot.endTime,
+                    Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0 ? slot.maxAppointments : null,
+                    slot.bookingEnabled !== false
+                )
             );
 
         } else {
@@ -55,7 +62,7 @@ class DaySchedule {
     }
 
     addSlot(startTime = "10:00", endTime = "20:00") {
-        const newSlot = new Slot(startTime, endTime);
+        const newSlot = new Slot(startTime, endTime, null, true);
         this.slots.push(newSlot);
         console.log(`Added slot to ${this.name}:`, newSlot);
     }
@@ -69,7 +76,9 @@ class DaySchedule {
         // Convert slots back to backend format (startTime, endTime)
         const slotsForBackend = this.slots.map(slot => ({
             startTime: slot.startTime,
-            endTime: slot.endTime
+            endTime: slot.endTime,
+            maxAppointments: Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0 ? slot.maxAppointments : null,
+            bookingEnabled: slot.bookingEnabled !== false
         }));
 
         console.log(`Converting ${this.name} to JSON:`, {
@@ -141,7 +150,9 @@ class BusinessSchedule {
             const clonedDay = new DaySchedule(dayName);
             clonedDay._id = dayObj._id;
             clonedDay.enabled = dayObj.enabled;
-            clonedDay.slots = dayObj.slots.map(slot => new Slot(slot.startTime, slot.endTime));
+            clonedDay.slots = dayObj.slots.map(
+                (slot) => new Slot(slot.startTime, slot.endTime, slot.maxAppointments, slot.bookingEnabled)
+            );
             clonedSchedule.days[dayName] = clonedDay;
         });
         return clonedSchedule;
@@ -351,6 +362,34 @@ const BusinessScheduler = () => {
         forceUpdate();
     };
 
+    const updateSlotCapacity = (day, index, value) => {
+        const newSchedule = schedule.clone();
+        const dayObj = newSchedule.days[day];
+
+        if (!dayObj || !dayObj.slots[index]) return;
+
+        const numericValue = Number(value);
+        if (value === '' || Number.isNaN(numericValue) || numericValue <= 0) {
+            dayObj.slots[index].maxAppointments = null;
+        } else {
+            dayObj.slots[index].maxAppointments = Math.floor(numericValue);
+        }
+
+        setSchedule(newSchedule);
+        forceUpdate();
+    };
+
+    const toggleSlotBooking = (day, index) => {
+        const newSchedule = schedule.clone();
+        const dayObj = newSchedule.days[day];
+
+        if (!dayObj || !dayObj.slots[index]) return;
+
+        dayObj.slots[index].bookingEnabled = !(dayObj.slots[index].bookingEnabled !== false);
+        setSchedule(newSchedule);
+        forceUpdate();
+    };
+
     const removeSlot = (day, index) => {
         console.log(`Removing slot ${index} from ${day}`);
         const newSchedule = schedule.clone();
@@ -377,7 +416,11 @@ const BusinessScheduler = () => {
                     enabled: dayData.enabled,
                     slots: dayData.slots.map(slot => ({
                         open: slot.startTime || slot.open,
-                        close: slot.endTime || slot.close
+                        close: slot.endTime || slot.close,
+                        maxAppointments: Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+                            ? slot.maxAppointments
+                            : null,
+                        bookingEnabled: slot.bookingEnabled !== false
                     }))
                 };
             });
@@ -489,29 +532,53 @@ const BusinessScheduler = () => {
                             }`}>
                             <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                                 {dayObj.slots.map((slot, index) => (
-                                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 bg-white rounded-lg p-2 sm:p-3 border border-slate-200">
-                                        <div className="flex-1 w-full sm:w-auto flex items-center gap-2 sm:gap-3">
-                                            <input
-                                                type="time"
-                                                value={slot.getOpen()}
-                                                onChange={(e) => updateSlot(dayObj.name, index, 'open', e.target.value)}
-                                                className="flex-1 sm:flex-none bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                                            />
-                                            <span className="text-slate-500 font-medium hidden sm:block">to</span>
-                                            <span className="text-slate-500 font-medium text-xs sm:hidden">→</span>
-                                            <input
-                                                type="time"
-                                                value={slot.getClose()}
-                                                onChange={(e) => updateSlot(dayObj.name, index, 'close', e.target.value)}
-                                                className="flex-1 sm:flex-none bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                                            />
+                                    <div key={index} className="bg-white rounded-lg p-2 sm:p-3 border border-slate-200 space-y-3">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                                            <div className="flex-1 w-full sm:w-auto flex items-center gap-2 sm:gap-3">
+                                                <input
+                                                    type="time"
+                                                    value={slot.getOpen()}
+                                                    onChange={(e) => updateSlot(dayObj.name, index, 'open', e.target.value)}
+                                                    className="flex-1 sm:flex-none bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                                                />
+                                                <span className="text-slate-500 font-medium hidden sm:block">to</span>
+                                                <span className="text-slate-500 font-medium text-xs sm:hidden">→</span>
+                                                <input
+                                                    type="time"
+                                                    value={slot.getClose()}
+                                                    onChange={(e) => updateSlot(dayObj.name, index, 'close', e.target.value)}
+                                                    className="flex-1 sm:flex-none bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                                                />
+                                            </div>
+                                            <button
+                                                className="w-full sm:w-auto sm:ml-auto px-2 sm:px-3 py-1.5 sm:py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-200 border border-red-200 text-sm sm:text-base"
+                                                onClick={() => removeSlot(dayObj.name, index)}
+                                            >
+                                                Remove
+                                            </button>
                                         </div>
-                                        <button
-                                            className="w-full sm:w-auto sm:ml-auto px-2 sm:px-3 py-1.5 sm:py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-200 border border-red-200 text-sm sm:text-base"
-                                            onClick={() => removeSlot(dayObj.name, index)}
-                                        >
-                                            Remove
-                                        </button>
+
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                                            <div className="w-full sm:w-auto flex-1">
+                                                <label className="block text-xs sm:text-sm text-slate-600 mb-1">Max appointments (leave empty for unlimited)</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0 ? slot.maxAppointments : ''}
+                                                    onChange={(e) => updateSlotCapacity(dayObj.name, index, e.target.value)}
+                                                    placeholder="Unlimited"
+                                                    className="w-full bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                                                />
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleSlotBooking(dayObj.name, index)}
+                                                className={`w-full sm:w-auto px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${slot.bookingEnabled !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
+                                            >
+                                                {slot.bookingEnabled !== false ? 'Stop Booking' : 'Allow Booking'}
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

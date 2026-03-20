@@ -1407,7 +1407,12 @@ export const addDaySchedule = async (req, res) => {
     const formattedSlots = (slots || []).map((slot, index) => ({
       startTime: slot.open,
       endTime: slot.close,
-      slotId: `${day}-${slot.open}-${slot.close}-${Date.now()}-${index}`
+      slotId: `${day}-${slot.open}-${slot.close}-${Date.now()}-${index}`,
+      maxAppointments:
+        Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+          ? slot.maxAppointments
+          : null,
+      bookingEnabled: slot.bookingEnabled !== false
     }));
 
     doctor.weeklySchedule.set(day, {
@@ -1499,12 +1504,19 @@ export const updateDoctorSchedule = async (req, res) => {
           const existingSlot =
             existing && existing.slots ? existing.slots[index] : null;
 
+          const normalizedMaxAppointments =
+            Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+              ? slot.maxAppointments
+              : null;
+
           return {
             slotId:
               existingSlot?.slotId ||
               `${day}-${slot.open}-${slot.close}-${Date.now()}-${index}`,
             startTime: slot.open,
             endTime: slot.close,
+            maxAppointments: normalizedMaxAppointments,
+            bookingEnabled: slot.bookingEnabled !== false,
           };
         });
 
@@ -1550,6 +1562,11 @@ export const updateDoctorSchedule = async (req, res) => {
           slotId: slot.slotId,
           open: slot.startTime,
           close: slot.endTime,
+          maxAppointments:
+            Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+              ? slot.maxAppointments
+              : null,
+          bookingEnabled: slot.bookingEnabled !== false,
         })),
       };
     });
@@ -1755,16 +1772,37 @@ export const changeStatus = async(req,res)=>{
         })
       }
       const appointment = await apponitment.findById(appointmentId);
+      if (!appointment) {
+        return res.status(404).json({
+          success: false,
+          message: "Appointment not found"
+        });
+      }
+
+      if (appointment.paymentStatus === 'paid') {
+        return res.status(200).json({
+          success: true,
+          message: "Already paid",
+          appointment
+        });
+      }
+
       appointment.paymentStatus='paid';
       // appointment.amount = appointment.paymentAmount || appointment.booking_amount;
-      await appointment.save();
+      const updatedAppointment = await appointment.save();
+
+      io.emit("appointmentUpdate", updatedAppointment);
 
       return res.status(200).json({
         success:true,
-        message:"paid successfully"
+        message:"paid successfully",
+        appointment: updatedAppointment
       })
 
   } catch (error) {
-    
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 } 

@@ -17,6 +17,15 @@ const timeSlotSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true
+  },
+  maxAppointments: {
+    type: Number,
+    default: null,
+    min: 1
+  },
+  bookingEnabled: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -189,7 +198,12 @@ DoctorSchema.methods.updateWeeklySchedule = function (scheduleData) {
       const formattedSlots = dayData.slots.map((slot, index) => ({
         startTime: slot.open,
         endTime: slot.close,
-        slotId: `${day}-${slot.open}-${slot.close}-${Date.now()}-${index}`
+        slotId: `${day}-${slot.open}-${slot.close}-${Date.now()}-${index}`,
+        maxAppointments:
+          Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+            ? slot.maxAppointments
+            : null,
+        bookingEnabled: slot.bookingEnabled !== false
       }));
 
       this.weeklySchedule.set(day, {
