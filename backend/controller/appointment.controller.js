@@ -99,6 +99,13 @@ export const createAppointment = async (req, res) => {
 
         const hospital = await hospitalModel.findById(hospitalId)
 
+        if (doctor?.bookingEnabled === false) {
+            return res.status(400).json({
+                success: false,
+                message: "Booking is disabled for this doctor"
+            });
+        }
+
         if (!doctor.status && req.user.role === 'patient') {
             return res.status(400).json({
                 success: false,

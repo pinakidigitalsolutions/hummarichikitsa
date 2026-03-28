@@ -104,6 +104,10 @@ const DoctorSchema = new mongoose.Schema(
       // enum: ['active', 'deactive'],
       default: true,
     },
+    bookingEnabled: {
+      type: Boolean,
+      default: true,
+    },
     photo: {
       type: String,
     },

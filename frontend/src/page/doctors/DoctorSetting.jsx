@@ -14,6 +14,7 @@ const DoctorSetting = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [doctor, setDoctor] = useState({
         status: true,
+        bookingEnabled: true,
         name: '',
         email: '',
         specialty: '',
@@ -35,7 +36,11 @@ const DoctorSetting = () => {
             try {
                 setLoading(true);
                 const response = await axiosInstance.get("/user/me");
-                setDoctor(response.data.user);
+                const nextDoctor = response.data.user || {};
+                setDoctor({
+                    bookingEnabled: nextDoctor.bookingEnabled !== false,
+                    ...nextDoctor
+                });
             } catch (error) {
                 console.error("Error fetching data:", error);
             } finally {
@@ -76,6 +81,25 @@ const DoctorSetting = () => {
         } else {
             // If currently inactive, just activate
             toggleStatus();
+        }
+    };
+
+    const handleBookingToggle = async () => {
+        try {
+            const nextValue = doctor?.bookingEnabled === false;
+            const res = await axiosInstance.put(`/doctor/${doctor._id}`, {
+                bookingEnabled: nextValue
+            });
+            if (res?.data?.success) {
+                setDoctor((prev) => ({
+                    ...prev,
+                    bookingEnabled: nextValue
+                }));
+                setSuccessMessage(`Booking ${nextValue ? 'enabled' : 'disabled'} successfully!`);
+                setTimeout(() => setSuccessMessage(''), 3000);
+            }
+        } catch (error) {
+            console.error("Error updating booking status:", error);
         }
     };
 
@@ -186,6 +210,11 @@ const DoctorSetting = () => {
                                     }`}>
                                     <div className={`h-2 w-2 rounded-full mr-2 ${doctor?.status ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
                                     {doctor?.status ? 'Active' : 'Inactive'}
+                                </div>
+                                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ml-2 ${doctor?.bookingEnabled !== false ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                                    }`}>
+                                    <div className={`h-2 w-2 rounded-full mr-2 ${doctor?.bookingEnabled !== false ? 'bg-blue-500' : 'bg-amber-500'}`}></div>
+                                    {doctor?.bookingEnabled !== false ? 'Booking On' : 'Booking Off'}
                                 </div>
                             </div>
                         </div>
@@ -406,6 +435,14 @@ const DoctorSetting = () => {
                                                 : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                                                 }`}>
                                             {doctor?.status ? 'Set as Inactive' : 'Set as Active'}
+                                        </button>
+                                        <button
+                                            onClick={handleBookingToggle}
+                                            className={`px-4 py-2 rounded-lg transition-colors ${doctor?.bookingEnabled !== false
+                                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                                }`}>
+                                            {doctor?.bookingEnabled !== false ? 'Stop Booking' : 'Allow Booking'}
                                         </button>
                                     </>
                                 )}
