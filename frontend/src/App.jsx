@@ -55,6 +55,10 @@ function App() {
 
           {/* Public home page - accessible to all */}
           <Route path="/" element={<Home />} />
+            <Route path="/hospitals" element={<HospitalListPage />} />
+      <Route path="/hospitals/:hospitalId/doctors" element={<DoctorListPage />} />
+            <Route path="/doctors/:doctorId" element={<DoctorDetailPage />} />
+      <Route path="/confirmation/:appointmentId" element={<ConfirmationPage />} />
 
           {/* Public login routes */}
           <Route element={<NotRequireAuth />}>
@@ -69,14 +73,10 @@ function App() {
             <Route path="/profile" element={<UserProfilePopup />} />
             <Route path="/contact" element={<Contact />} />
 
-            <Route path="/hospitals" element={<HospitalListPage />} />
-            <Route path="/hospitals/:hospitalId/doctors" element={<DoctorListPage />} />
 
-            <Route path="/doctors/:doctorId" element={<DoctorDetailPage />} />
 
             <Route path="/appointments" element={<Appointment />} />
             <Route path="/payment/:appointmentId" element={<PaymentPage />} />
-            <Route path="/confirmation/:appointmentId" element={<ConfirmationPage />} />
 
             <Route path="/appointment_details_page/:id" element={<AppointmentDetailsPage />} />
           </Route>

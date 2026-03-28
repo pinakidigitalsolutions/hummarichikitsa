@@ -56,7 +56,7 @@ const DoctorLogin = () => {
           localStorage.setItem("isLoggedIn", true);
           localStorage.setItem("role", response?.payload?.user?.role);
           localStorage.setItem("token", response?.payload?.token);
-          navigate("/analytics/dashboard");
+          navigate("/doctor/dashboard");
 
         }
       } catch (error) {
