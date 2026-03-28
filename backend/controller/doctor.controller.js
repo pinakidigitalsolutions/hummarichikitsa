@@ -8,6 +8,8 @@ import hospitalModel from "../model/hospital.model.js";
 import doctorNodel from "../model/doctor.nodel.js";
 import { schedule } from "node-cron";
 import apponitment from "../model/apponitment.js";
+import Staff from "../model/staff.model.js";
+import Admin from "../model/admin.js";
 
 // Create a new doctor
 export const createDoctor = async (req, res) => {
@@ -843,6 +845,12 @@ export const ChangePassword = async (req, res) => {
     let getUser = await Doctor.findById(user._id).select('+password');
     if (!getUser) {
       getUser = await hospitalModel.findById(user._id).select('+password');
+    }
+    if (!getUser) {
+      getUser = await Staff.findById(user._id).select('+password');
+    }
+    if (!getUser) {
+      getUser = await Admin.findById(user._id).select('+password');
     }
 
     if (!getUser) {

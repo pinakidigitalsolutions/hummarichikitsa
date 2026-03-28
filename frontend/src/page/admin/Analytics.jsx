@@ -218,8 +218,8 @@ const AnalyticsDashboard = () => {
             ) : (
               <>
                 <KPICard
-                  title="Confirmed Appointments"
-                  value={dashboardData?.confirmed_appointments || 0}
+                  title="Total Appointments"
+                  value={dashboardData?.total_appointments || 0}
                   color="amber"
                 />
                 <KPICard

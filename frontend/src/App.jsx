@@ -27,6 +27,7 @@ import DoctorSetting from "./page/doctors/DoctorSetting";
 import UserProfilePopup from "./page/Profile";
 import AnalyticsDashboard from "./page/admin/Analytics";
 import BusinessScheduler from "./page/doctors/BusinessScheduler";
+import AdminStaffSetting from "./page/admin/AdminStaffSetting";
 
 // lazy pages
 const PaymentPage = lazy(() => import("./page/PaymentPage"));
@@ -59,6 +60,8 @@ function App() {
       <Route path="/hospitals/:hospitalId/doctors" element={<DoctorListPage />} />
             <Route path="/doctors/:doctorId" element={<DoctorDetailPage />} />
       <Route path="/confirmation/:appointmentId" element={<ConfirmationPage />} />
+            <Route path="/appointments" element={<Appointment />} />
+            <Route path="/appointment_details_page/:id" element={<AppointmentDetailsPage />} />
 
           {/* Public login routes */}
           <Route element={<NotRequireAuth />}>
@@ -75,10 +78,8 @@ function App() {
 
 
 
-            <Route path="/appointments" element={<Appointment />} />
             <Route path="/payment/:appointmentId" element={<PaymentPage />} />
 
-            <Route path="/appointment_details_page/:id" element={<AppointmentDetailsPage />} />
           </Route>
 
           <Route path="/analytics/dashboard" element={<AnalyticsDashboard />} />
@@ -97,6 +98,12 @@ function App() {
           <Route element={<RequireAuth allowedRoles={["admin"]} />}>
             <Route path="/hospital/list" element={<HospitalList />} />
             <Route path="/hospital/create" element={<HospitalForm />} />
+            <Route path="/admin/setting" element={<AdminStaffSetting />} />
+          </Route>
+
+          {/* Staff */}
+          <Route element={<RequireAuth allowedRoles={["staff"]} />}>
+            <Route path="/staff/setting" element={<AdminStaffSetting />} />
           </Route>
 
           {/* Doctor */}

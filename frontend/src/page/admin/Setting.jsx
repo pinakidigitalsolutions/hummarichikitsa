@@ -347,7 +347,7 @@ const Setting = () => {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 my-6">
                   <h2 className="text-lg md:text-xl font-semibold text-slate-800 mb-4">
                     Change Password
                   </h2>

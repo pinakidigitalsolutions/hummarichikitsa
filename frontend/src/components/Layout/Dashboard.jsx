@@ -17,8 +17,13 @@ const Dashboard = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Check if we have data in Redux, if not, fetch it
-    if (!data || Object.keys(data).length === 0) {
+    const hasData = data && Object.keys(data).length > 0;
+    const hasHospital = Boolean(data?.hospital || data?.user?.hospital || data?.user?.hospitalId?.name);
+    const hasHospitalId = Boolean(data?.user?.hospitalId || data?.hospitalId);
+    const needsHospitalLookup = hasHospitalId && !hasHospital;
+
+    // Check if we have data in Redux, if not, or hospital is missing, fetch it
+    if (!hasData || needsHospitalLookup) {
       dispatch(AuthMe())
         .unwrap()
         .then((result) => {
@@ -70,7 +75,7 @@ const Dashboard = ({ children }) => {
       <div className="lg:hidden bg-white shadow-sm py-4 px-5 flex justify-between items-center">
         
         <h1 className="text-xl flex font-bold text-gray-800">
-          <Calendar className="h-8 w-8 text-blue-600" /> Hummari chikitsa
+          <Calendar className="h-8 w-8 text-blue-600" /> Hummari Chikitsa
         </h1>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -172,6 +177,7 @@ const Dashboard = ({ children }) => {
                   <li>
                     <NavLink
                       to='/hospital'
+                      end
                       className={({ isActive }) =>
                         `flex items-center p-2 sm:p-3 rounded-lg transition text-sm sm:text-base ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-100"
                         }`
@@ -216,10 +222,42 @@ const Dashboard = ({ children }) => {
                   </li>
                 )}
 
+                {currentRole === 'admin' && (
+                  <li>
+                    <NavLink
+                      to="/admin/setting"
+                      className={({ isActive }) =>
+                        `flex items-center p-2 sm:p-3 rounded-lg transition text-sm sm:text-base ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-100"
+                        }`
+                      }
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
+                      <span className="font-medium">Settings</span>
+                    </NavLink>
+                  </li>
+                )}
+
                 {currentRole === 'doctor' && (
                   <li>
                     <NavLink
                       to="/doctor/setting"
+                      className={({ isActive }) =>
+                        `flex items-center p-2 sm:p-3 rounded-lg transition text-sm sm:text-base ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-100"
+                        }`
+                      }
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
+                      <span className="font-medium">Settings</span>
+                    </NavLink>
+                  </li>
+                )}
+
+                {currentRole === 'staff' && (
+                  <li>
+                    <NavLink
+                      to="/staff/setting"
                       className={({ isActive }) =>
                         `flex items-center p-2 sm:p-3 rounded-lg transition text-sm sm:text-base ${isActive ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-100"
                         }`

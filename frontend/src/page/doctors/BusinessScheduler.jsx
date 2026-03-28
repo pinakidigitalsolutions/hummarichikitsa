@@ -292,6 +292,38 @@ const BusinessScheduler = () => {
         }
     };
 
+    const normalizeScheduleResponse = (responseSchedule) => {
+        if (!responseSchedule || typeof responseSchedule !== 'object') {
+            return null;
+        }
+
+        const normalized = {};
+        Object.entries(responseSchedule).forEach(([dayName, dayData]) => {
+            if (!dayData) {
+                return;
+            }
+
+            const slots = Array.isArray(dayData.slots)
+                ? dayData.slots.map((slot) => ({
+                    startTime: slot.startTime || slot.open || slot.start,
+                    endTime: slot.endTime || slot.close || slot.end,
+                    maxAppointments:
+                        Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+                            ? slot.maxAppointments
+                            : null,
+                    bookingEnabled: slot.bookingEnabled !== false
+                }))
+                : [];
+
+            normalized[dayName] = {
+                enabled: dayData.enabled === true,
+                slots
+            };
+        });
+
+        return normalized;
+    };
+
     useEffect(() => {
         getSchedule();
     }, []);
@@ -434,7 +466,15 @@ const BusinessScheduler = () => {
                 setSaved(true);
                 setTimeout(() => setSaved(false), 3000);
                 toast.success("Schedule saved successfully!");
-                getSchedule();
+                const responseSchedule = res.data?.data || res.data?.schedule;
+                const normalizedSchedule = normalizeScheduleResponse(responseSchedule);
+
+                if (normalizedSchedule) {
+                    setSchedule(new BusinessSchedule(normalizedSchedule));
+                    forceUpdate();
+                } else {
+                    getSchedule();
+                }
             } else {
                 throw new Error(res.data.message || "Failed to save schedule");
             }
