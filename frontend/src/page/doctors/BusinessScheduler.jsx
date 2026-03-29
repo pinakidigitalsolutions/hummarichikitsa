@@ -611,13 +611,13 @@ const BusinessScheduler = () => {
                                                 />
                                             </div>
 
-                                            <button
+                                            {/* <button
                                                 type="button"
                                                 onClick={() => toggleSlotBooking(dayObj.name, index)}
                                                 className={`w-full sm:w-auto px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${slot.bookingEnabled !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
                                             >
                                                 {slot.bookingEnabled !== false ? 'Stop Booking' : 'Allow Booking'}
-                                            </button>
+                                            </button> */}
                                         </div>
                                     </div>
                                 ))}

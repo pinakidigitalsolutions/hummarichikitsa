@@ -95,8 +95,7 @@ const DoctorSetting = () => {
                     ...prev,
                     bookingEnabled: nextValue
                 }));
-                setSuccessMessage(`Booking ${nextValue ? 'enabled' : 'disabled'} successfully!`);
-                setTimeout(() => setSuccessMessage(''), 3000);
+                toast.success(`Booking ${nextValue ? 'enabled' : 'disabled'} successfully!`);
             }
         } catch (error) {
             console.error("Error updating booking status:", error);
@@ -436,14 +435,28 @@ const DoctorSetting = () => {
                                                 }`}>
                                             {doctor?.status ? 'Set as Inactive' : 'Set as Active'}
                                         </button>
-                                        <button
-                                            onClick={handleBookingToggle}
-                                            className={`px-4 py-2 rounded-lg transition-colors ${doctor?.bookingEnabled !== false
-                                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                                }`}>
-                                            {doctor?.bookingEnabled !== false ? 'Stop Booking' : 'Allow Booking'}
-                                        </button>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-medium text-slate-700">
+                                                Allow Booking For Patients.
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={handleBookingToggle}
+                                                role="switch"
+                                                aria-checked={doctor?.bookingEnabled !== false}
+                                                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${doctor?.bookingEnabled !== false
+                                                    ? 'bg-green-500'
+                                                    : 'bg-slate-300'
+                                                    }`}
+                                            >
+                                                <span
+                                                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${doctor?.bookingEnabled !== false
+                                                        ? 'translate-x-7'
+                                                        : 'translate-x-1'
+                                                        }`}
+                                                />
+                                            </button>
+                                        </div>
                                     </>
                                 )}
                             </div>
