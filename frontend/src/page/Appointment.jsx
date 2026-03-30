@@ -463,8 +463,10 @@ function Appointment() {
 
     // Filter appointments based on tab selection
     const filteredAppointments = appointments?.filter(appointment => {
+        const normalizedStatus = String(appointment.status || '').toLowerCase().trim();
+
         if (activeTab === 'active') {
-            if (appointment.status === "completed") return false;
+            if (normalizedStatus === "completed") return false;
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -473,7 +475,7 @@ function Appointment() {
 
             return appointmentDate >= today;
         } else {
-            if (appointment.status === "completed") return true;
+            if (normalizedStatus === "completed") return true;
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -604,7 +606,9 @@ function Appointment() {
                             // Determine status for display
                             let displayStatus;
                             let statusColor;
-                            if (appointment.status === "completed") {
+                            const normalizedStatus = String(appointment.status || '').toLowerCase().trim();
+
+                            if (normalizedStatus === "completed") {
                                 displayStatus = "Completed";
                                 statusColor = "bg-blue-100 text-blue-800";
                             } else {
@@ -625,6 +629,10 @@ function Appointment() {
                                 }
                             }
 
+                            const showDoctorStatus = displayStatus !== "Completed";
+                            const showLiveStatus = showDoctorStatus && doctor?.status !== false && doctor?.active === true;
+                            const showInactiveStatus = showDoctorStatus && doctor?.status === false;
+
                             return (
                                 <div key={appointment._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
                                     {/* Status Header */}
@@ -634,8 +642,8 @@ function Appointment() {
                                                 {displayStatus}
                                             </span>
 
-                                            {/* Live Status Indicator - ONLY FOR TODAY'S APPOINTMENTS */}
-                                            {appointmentIsToday && displayStatus !== "Completed" && doctor?.active && (
+                                            {/* Live Status Indicator */}
+                                            {showLiveStatus && (
                                                 <div className="flex items-center text-xs text-green-600">
                                                     <span className="relative flex h-2 w-2 mr-1">
                                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -644,20 +652,28 @@ function Appointment() {
                                                     Live
                                                 </div>
                                             )}
-                                            {appointmentIsToday && displayStatus !== "Completed" && !doctor?.active && (
-                                                <div className="flex items-center   px-1 text-wrap  border-amber-100">
-                                                    <p className="text-xs text-red-700 text-center">
-                                                        Doctor is OUT now, He is not actively looking for a patient please wait for him to start.
-                                                    </p>
+                                            {showInactiveStatus && (
+                                                <div className="flex items-center text-xs text-red-600">
+                                                    <span className="relative flex h-2 w-2 mr-1">
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                                    </span>
+                                                    Inactive
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
                                     <div className="p-4">
-                                        {/* Doctor Info - Compact - ONLY FOR TODAY'S APPOINTMENTS */}
+                                        {/* Doctor Info - Compact */}
 
-                                        {appointmentIsToday && displayStatus !== "Completed" && doctor?.active && (
+                                        {showInactiveStatus && (
+                                            <div className="bg-amber-50 rounded-lg px-1 mb-3 border border-amber-100">
+                                                <p className="text-xs text-red-700 text-center">
+                                                    Doctor is OUT now, He is not actively looking for a patient please wait for him to start.
+                                                </p>
+                                            </div>
+                                        )}
+                                        {appointmentIsToday && showLiveStatus && (
                                             <div className="bg-green-50 rounded-lg p-2 mb-3 border border-green-100">
                                                 <div className="flex justify-between text-xs">
                                                     <div className="text-gray-700">

@@ -392,6 +392,8 @@ export const updateAppointmentStatus = async (req, res) => {
         //     return res.status(400).json({ message: "Invalid status value" });
         // }
 
+        const forceComplete = req.query?.forceComplete === 'true' || req.body?.forceComplete === true;
+
         // Doctor-specific availability guard
         if (user?.role === "doctor") {
             const doctor = await doctorNodel.findById(userId).select("active");
@@ -402,7 +404,7 @@ export const updateAppointmentStatus = async (req, res) => {
                 });
             }
 
-            if (!doctor.active) {
+            if (!doctor.active && !forceComplete) {
                 return res.status(200).json({
                     success: false,
                     message: "Doctor inactive"
@@ -415,7 +417,11 @@ export const updateAppointmentStatus = async (req, res) => {
             return res.status(404).json({ message: "Appointment not found" });
         }
 
-        if (appointment.status === 'confirmed') {
+        if (forceComplete) {
+            if (appointment.status !== 'completed' && appointment.status !== 'cancelled') {
+                status = 'completed';
+            }
+        } else if (appointment.status === 'confirmed') {
             status = 'check-in';
             // Update doctor's current appointment when someone checks in
             await doctorNodel.findByIdAndUpdate(

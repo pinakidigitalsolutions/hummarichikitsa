@@ -318,6 +318,8 @@ export const updateDoctor = async (req, res) => {
       }
     }
 
+    io.emit("doctorUpdate", updatedDoctor);
+
     return res.status(200).json({
       success: true,
       message: "Doctor updated successfully",
@@ -1290,6 +1292,7 @@ export const ActiveDoctors = async (req, res) => {
     doctor.deactivationReason = deactivationReason
     doctor.status = !doctor.status
     const updatedDoctor = await doctor.save()
+    io.emit("doctorUpdate", updatedDoctor);
     res.status(200).json({
       success: true,
       data: updatedDoctor

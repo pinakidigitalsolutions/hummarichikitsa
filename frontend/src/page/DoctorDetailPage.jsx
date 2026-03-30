@@ -769,10 +769,11 @@ import toast from 'react-hot-toast';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { getAllHospital } from '../Redux/hospitalSlice';
 import { AppointmentCreate } from '../Redux/appointment';
-import { getAllDoctors } from '../Redux/doctorSlice';
+import { getAllDoctors, updateDoctorStatus } from '../Redux/doctorSlice';
 import Layout from '../components/Layout/Layout';
 import SignInButton from './SignInButton';
 import { jwtDecode } from "jwt-decode";
+import socket from '../Helper/socket';
 
 const DoctorDetailPage = () => {
     const todayDate = new Date();
@@ -987,6 +988,12 @@ const DoctorDetailPage = () => {
     // Get available dates
     const availableDates = getAvailableDates();
 
+    const isBookingDisabled = doctor?.status === false || doctor?.bookingEnabled === false;
+    const bookingDisabledMessage = doctor?.status === false
+        ? 'Doctor is currently inactive. Please check back later.'
+        : 'Booking is currently disabled by the doctor.';
+    const isBookButtonDisabled = isBookingDisabled || !patient || !selectDate || !mobile || mobile.length !== 10 || !selectedSlot;
+
     // Auto-select slot if current time is within a slot for today
     useEffect(() => {
         if (selectDate && isToday(new Date(selectDate)) && availableSlots.length > 0) {
@@ -1002,6 +1009,11 @@ const DoctorDetailPage = () => {
         if (!isLoggdIn) {
             setLoading(false);
             setlogin(true);
+            return;
+        }
+
+        if (isBookingDisabled) {
+            toast.error('Booking is currently unavailable.');
             return;
         }
 
@@ -1124,6 +1136,20 @@ Thank you – Hummari Chikitsa
     }, [dispatch, hospitals?.length, doctors?.length]);
 
     useEffect(() => {
+        const handleDoctorUpdate = (data) => {
+            dispatch(updateDoctorStatus(data));
+        };
+
+        socket.on("doctorUpdate", handleDoctorUpdate);
+        socket.on("doctoractive", handleDoctorUpdate);
+
+        return () => {
+            socket.off("doctorUpdate", handleDoctorUpdate);
+            socket.off("doctoractive", handleDoctorUpdate);
+        };
+    }, [dispatch]);
+
+    useEffect(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }, []);
 
@@ -1156,6 +1182,18 @@ Thank you – Hummari Chikitsa
             setErrorMessage('');
         }
     }, [selectDate]);
+
+    const isDataLoading = isLoading || doctorsLoading || hospitalsLoading;
+
+    if (isDataLoading) {
+        return (
+            <Layout>
+                <div className="container mx-auto px-4 py-8 text-center">
+                    <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-teal-600 border-t-transparent"></div>
+                </div>
+            </Layout>
+        );
+    }
 
     if (!doctor) {
         return (
@@ -1330,6 +1368,12 @@ Thank you – Hummari Chikitsa
                                         </p>
                                     </div>
 
+                                    {isBookingDisabled && (
+                                        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                            {bookingDisabledMessage}
+                                        </div>
+                                    )}
+
                                     {/* Calendar Picker */}
                                     <div className="mb-8">
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
@@ -1351,9 +1395,12 @@ Thank you – Hummari Chikitsa
                                                                     setSelectedSlot('');
                                                                     setErrorMessage('');
                                                                 }}
-                                                                className={`flex-shrink-0 px-4 py-2.5 rounded-lg font-medium shadow-md transition-all min-w-[120px] ${selectDate === dateInfo.date
-                                                                    ? 'bg-blue-700 text-white hover:bg-blue-800'
-                                                                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                                                disabled={isBookingDisabled}
+                                                                className={`flex-shrink-0 px-4 py-2.5 rounded-lg font-medium shadow-md transition-all min-w-[120px] ${isBookingDisabled
+                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                    : selectDate === dateInfo.date
+                                                                        ? 'bg-blue-700 text-white hover:bg-blue-800'
+                                                                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                                                                     }`}
                                                             >
                                                                 <div className="text-center">
@@ -1415,20 +1462,22 @@ Thank you – Hummari Chikitsa
                                                 {availableSlots.length > 0 ? (
                                                     <>
                                                         <div className="grid  grid-cols-1 md:grid-cols-3 gap-3">
-                                                            {availableSlots.map((slot) => (
-                                                                <>
+                                                            {availableSlots.map((slot) => {
+                                                                const isSlotDisabled = isBookingDisabled || !slot.selectable;
+
+                                                                return (
                                                                     <button
                                                                         key={slot.id}
                                                                         type="button"
                                                                         onClick={() => {
-                                                                            if (slot.selectable) {
+                                                                            if (!isSlotDisabled) {
                                                                                 setSelectedSlot(slot.displayTime);
                                                                             }
                                                                         }}
-                                                                        disabled={!slot.selectable}
+                                                                        disabled={isSlotDisabled}
                                                                         className={`
                                                                         relative p-1 rounded-xl border transition-all duration-200
-                                                                        ${!slot.selectable
+                                                                        ${isSlotDisabled
                                                                                 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                                                                 : selectedSlot === slot.displayTime
                                                                                     ? 'bg-teal-600 text-white border-teal-700 shadow-md'
@@ -1439,8 +1488,8 @@ Thank you – Hummari Chikitsa
                                                                     >
                                                                         <span className="block text-sm font-medium">{slot.displayTime}</span>
                                                                     </button>
-                                                                </>
-                                                            ))}
+                                                                );
+                                                            })}
                                                         </div>
 
 
@@ -1498,7 +1547,8 @@ Thank you – Hummari Chikitsa
                                                 value={patient}
                                                 onChange={(e) => setPatient(e.target.value)}
                                                 placeholder="Enter full name"
-                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all placeholder:text-gray-400"
+                                                className={`w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all placeholder:text-gray-400 ${isBookingDisabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                                                disabled={isBookingDisabled}
                                                 required
                                             />
                                         </div>
@@ -1523,7 +1573,8 @@ Thank you – Hummari Chikitsa
                                                         }
                                                     }}
                                                     placeholder="98765 43210"
-                                                    className="w-full pl-12 px-4 py-2.5 rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all placeholder:text-gray-400"
+                                                    className={`w-full pl-12 px-4 py-2.5 rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all placeholder:text-gray-400 ${isBookingDisabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                                                    disabled={isBookingDisabled}
                                                     inputMode="numeric"
                                                     maxLength={10}
                                                     required
@@ -1550,7 +1601,8 @@ Thank you – Hummari Chikitsa
                                                     }
                                                 }}
                                                 placeholder="Enter age in years"
-                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all placeholder:text-gray-400"
+                                                className={`w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all placeholder:text-gray-400 ${isBookingDisabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                                                disabled={isBookingDisabled}
                                                 maxLength={3}
                                             />
                                         </div>
@@ -1584,9 +1636,9 @@ Thank you – Hummari Chikitsa
                                     ) : (
                                         <button
                                             onClick={handleBooking}
-                                            disabled={!patient || !selectDate || !mobile || mobile.length !== 10 || !selectedSlot}
+                                            disabled={isBookButtonDisabled}
                                             className={`w-full py-3 rounded-lg font-medium flex items-center justify-center transition
-                                                ${!patient || !selectDate || !mobile || mobile.length !== 10 || !selectedSlot
+                                                ${isBookButtonDisabled
                                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                                     : 'bg-gradient-to-r from-teal-600 to-teal-500 text-white hover:from-teal-700 hover:to-teal-600 shadow-md'
                                                 }

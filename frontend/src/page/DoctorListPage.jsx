@@ -261,7 +261,7 @@ const DoctorListPage = () => {
                   <div className="p-6 md:w-3/4">
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start">
                       <div>
-                        {doctor?.deactivationReason && (
+                        {!doctor?.status && doctor?.deactivationReason && (
                           <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-md mb-3">
                             <p className="text-sm font-medium">
                               Reason: {doctor.deactivationReason}

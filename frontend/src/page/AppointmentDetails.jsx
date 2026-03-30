@@ -77,19 +77,19 @@ const AppointmentDetailsPage = () => {
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
                                     <h1 className="text-2xl sm:text-3xl font-bold">Appointment Details</h1>
-                                    <div className="flex items-center mt-3">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[appointment?.status]}`}>
+                                    <div className="md:flex md:items-center mt-3">
+                                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[appointment?.status]}`}>
                                             {statusIcons[appointment?.status]}
                                             {appointment?.status.charAt(0).toUpperCase() + appointment?.status.slice(1)}
-                                        </span>
-                                        <span className="ml-3 text-blue-100 text-sm bg-white/10 px-2 py-1 rounded">
+                                        </div>
+                                        <div className="mt-3 md:mt-0 md:ml-3 text-blue-100 text-sm bg-white/10 px-2 py-1 rounded">
                                             Token No: {appointment?.token}
-                                        </span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="bg-white/20 p-3 rounded-lg shadow-inner">
+                                {/* <div className="bg-white/20 p-3 rounded-lg shadow-inner">
                                     <Calendar className="h-7 w-7 text-white" />
-                                </div>
+                                </div> */}
                             </div>
                         </div>
 

@@ -13,6 +13,7 @@ const DoctorSetting = () => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [doctor, setDoctor] = useState({
+        active: false,
         status: true,
         bookingEnabled: true,
         name: '',
@@ -30,6 +31,7 @@ const DoctorSetting = () => {
     const [successMessage, setSuccessMessage] = useState('');
     const [showResignModal, setShowResignModal] = useState(false);
     const [resignationReason, setResignationReason] = useState('');
+    const [bookingLoading, setBookingLoading] = useState(false);
 
     useEffect(() => {
         async function fetchData() {
@@ -86,6 +88,8 @@ const DoctorSetting = () => {
 
     const handleBookingToggle = async () => {
         try {
+            if (bookingLoading) return;
+            setBookingLoading(true);
             const nextValue = doctor?.bookingEnabled === false;
             const res = await axiosInstance.put(`/doctor/${doctor._id}`, {
                 bookingEnabled: nextValue
@@ -99,23 +103,31 @@ const DoctorSetting = () => {
             }
         } catch (error) {
             console.error("Error updating booking status:", error);
+        } finally {
+            setBookingLoading(false);
         }
     };
 
     const toggleStatus = async () => {
         try {
+            const nextStatus = !doctor.status;
             // Replace with actual API call
             await axiosInstance.post(`/doctor/active`, {
-                resignationReason: " "
+                deactivationReason: " "
             });
+
+            if (doctor?._id && doctor?.active !== nextStatus) {
+                await axiosInstance.put(`/doctor/${doctor._id}/active/doctor`);
+            }
             
             // Update local state immediately
             setDoctor(prev => ({
                 ...prev,
-                status: !prev.status
+                status: nextStatus,
+                active: nextStatus
             }));
             
-            setSuccessMessage(`Profile ${doctor.status ? 'deactivated' : 'activated'} successfully!`);
+            setSuccessMessage(`Profile ${nextStatus ? 'activated' : 'deactivated'} successfully!`);
             setShowResignModal(false);
             setTimeout(() => setSuccessMessage(''), 3000);
             setResignationReason(''); // Reset resignation reason
@@ -132,15 +144,21 @@ const DoctorSetting = () => {
         }
 
         try {
+            const nextStatus = false;
 
             const res = await axiosInstance.post(`/doctor/active`, {
                 deactivationReason: resignationReason || ""
             })
+
+            if (doctor?._id && doctor?.active !== nextStatus) {
+                await axiosInstance.put(`/doctor/${doctor._id}/active/doctor`);
+            }
             
             // Update local state immediately
             setDoctor(prev => ({
                 ...prev,
-                status: false,
+                status: nextStatus,
+                active: nextStatus,
                 deactivationReason: resignationReason
             }));
             
@@ -436,18 +454,23 @@ const DoctorSetting = () => {
                                             {doctor?.status ? 'Set as Inactive' : 'Set as Active'}
                                         </button>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-sm font-medium text-slate-700">
-                                                Allow Booking For Patients.
+                                            <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                {bookingLoading && (
+                                                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400 border-t-transparent"></span>
+                                                )}
+                                                {bookingLoading ? 'Updating booking...' : 'Allow Booking For Patients.'}
                                             </span>
                                             <button
                                                 type="button"
                                                 onClick={handleBookingToggle}
                                                 role="switch"
                                                 aria-checked={doctor?.bookingEnabled !== false}
+                                                aria-busy={bookingLoading}
+                                                disabled={bookingLoading}
                                                 className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${doctor?.bookingEnabled !== false
                                                     ? 'bg-green-500'
                                                     : 'bg-slate-300'
-                                                    }`}
+                                                    } ${bookingLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                             >
                                                 <span
                                                     className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${doctor?.bookingEnabled !== false

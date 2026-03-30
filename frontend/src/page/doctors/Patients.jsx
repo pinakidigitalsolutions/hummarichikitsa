@@ -38,6 +38,27 @@ const Patients = () => {
 
     const appointments = useSelector((state) => state.appointment?.appointment);
     const appointmentLoading = useSelector((state) => state.appointment?.loading);
+    const authUser = useSelector((state) => state.auth?.data);
+    const role = useSelector((state) => state.auth?.role);
+
+    const isRelevantAppointment = (appointment) => {
+        if (!appointment) return false;
+        const appointmentDoctorId = appointment?.doctorId?._id || appointment?.doctorId;
+        const appointmentHospitalId = appointment?.hospitalId?._id || appointment?.hospitalId;
+
+        if (role === 'doctor') {
+            return appointmentDoctorId === authUser?._id;
+        }
+        if (role === 'staff') {
+            const staffHospitalId = authUser?.hospitalId?._id || authUser?.hospitalId;
+            return appointmentHospitalId === staffHospitalId;
+        }
+        if (role === 'hospital') {
+            return appointmentHospitalId === authUser?._id;
+        }
+
+        return true;
+    };
 
     // Process appointments by date
     useEffect(() => {
@@ -68,11 +89,15 @@ const Patients = () => {
 
     useEffect(() => {
         const handleAppointmentUpdate = (updatedAppointment) => {
-            dispatch(mergeAppointmentFromSocket(updatedAppointment));
+            if (isRelevantAppointment(updatedAppointment)) {
+                dispatch(mergeAppointmentFromSocket(updatedAppointment));
+            }
         };
 
         const handleAppointmentCreate = (createdAppointment) => {
-            dispatch(mergeAppointmentFromSocket(createdAppointment));
+            if (isRelevantAppointment(createdAppointment)) {
+                dispatch(mergeAppointmentFromSocket(createdAppointment));
+            }
         };
 
         socket.on('appointmentUpdate', handleAppointmentUpdate);
@@ -82,7 +107,7 @@ const Patients = () => {
             socket.off('appointmentUpdate', handleAppointmentUpdate);
             socket.off('createAppointment', handleAppointmentCreate);
         };
-    }, [dispatch]);
+    }, [dispatch, role, authUser]);
 
     // Filter appointments based on search and selected date
     const filteredAppointments = appointments?.filter(appointment => {
@@ -148,7 +173,7 @@ const Patients = () => {
     };
 
     const ConfirmAppointment = async (appointment_id) => {
-        await dispatch(AppointmentConferm(appointment_id));
+        await dispatch(AppointmentConferm({ appointmentId: appointment_id, forceComplete: true }));
         await dispatch(getAllAppointment());
     };
 

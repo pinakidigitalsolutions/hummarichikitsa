@@ -37,8 +37,14 @@ export const AppointmentConferm = createAsyncThunk(
     "appointment/confirmd", // Changed to match slice name
     async (data) => {
         try {
-            
-            const response = axiosInstance.patch(`/appointment/${data}/status`);
+            const appointmentId = typeof data === 'object' ? data?.appointmentId : data;
+            const forceComplete = typeof data === 'object' && data?.forceComplete === true;
+            const url = forceComplete
+                ? `/appointment/${appointmentId}/status?forceComplete=true`
+                : `/appointment/${appointmentId}/status`;
+            const response = forceComplete
+                ? axiosInstance.patch(url, { forceComplete: true })
+                : axiosInstance.patch(url);
             toast.promise(response, {
                 loading: "complete your appointment...",
                 success: (data) => {
