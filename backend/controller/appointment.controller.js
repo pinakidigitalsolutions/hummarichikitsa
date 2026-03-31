@@ -38,6 +38,20 @@ export const createAppointment = async (req, res) => {
         return `${hours12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
     };
 
+    const timeToMinutes = (time) => {
+        if (!time || typeof time !== 'string') return null;
+        const [hours, minutes] = time.split(':').map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+        return hours * 60 + minutes;
+    };
+
+    const buildSlotString = (slotData) => {
+        const start = formatTimeTo12Hour(slotData?.startTime);
+        const end = formatTimeTo12Hour(slotData?.endTime);
+        if (!start || !end) return '';
+        return `${start} - ${end}`;
+    };
+
     function getSlot(bookedCount, startH) {
         const maxPerSlot = 5;
         const slotDuration = 15;
@@ -126,47 +140,113 @@ export const createAppointment = async (req, res) => {
             date: date
         });
 
+        const dayName = getDayNameFromDate(date);
+        const daySchedule = doctor?.weeklySchedule?.get
+            ? doctor.weeklySchedule.get(dayName)
+            : doctor?.weeklySchedule?.[dayName];
+
+        const scheduleSlots = Array.isArray(daySchedule?.slots) ? daySchedule.slots : [];
         let slotString = typeof slot === 'string' ? slot.trim() : '';
+        let selectedSlot = null;
+        let rangeHadSlots = false;
+
+        if (startTime && endTime && scheduleSlots.length > 0) {
+            const exactMatch = scheduleSlots.find((weekSlot) => (
+                weekSlot.startTime === startTime && weekSlot.endTime === endTime
+            ));
+
+            if (exactMatch) {
+                selectedSlot = exactMatch;
+            } else {
+                const requestedStart = timeToMinutes(startTime);
+                const requestedEnd = timeToMinutes(endTime);
+
+                if (requestedStart !== null && requestedEnd !== null && requestedStart < requestedEnd) {
+                    const candidates = scheduleSlots
+                        .filter((weekSlot) => {
+                            const slotStart = timeToMinutes(weekSlot.startTime);
+                            const slotEnd = timeToMinutes(weekSlot.endTime);
+
+                            if (slotStart === null || slotEnd === null) return false;
+                            return slotStart >= requestedStart && slotEnd <= requestedEnd;
+                        })
+                        .sort((firstSlot, secondSlot) => {
+                            return timeToMinutes(firstSlot.startTime) - timeToMinutes(secondSlot.startTime);
+                        });
+
+                    rangeHadSlots = candidates.length > 0;
+
+                    for (const candidate of candidates) {
+                        if (candidate.bookingEnabled === false) {
+                            continue;
+                        }
+
+                        if (Number.isInteger(candidate.maxAppointments) && candidate.maxAppointments > 0) {
+                            const candidateSlotString = buildSlotString(candidate);
+                            const bookedCountForSlot = existingAppointments.filter(
+                                (appointment) => appointment.slot === candidateSlotString
+                            ).length;
+
+                            if (bookedCountForSlot >= candidate.maxAppointments) {
+                                continue;
+                            }
+                        }
+
+                        selectedSlot = candidate;
+                        break;
+                    }
+
+                    if (!selectedSlot && rangeHadSlots) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "This time slot is fully booked"
+                        });
+                    }
+                }
+            }
+        }
+
+        if (!selectedSlot && slotString && scheduleSlots.length > 0) {
+            const matchedSlot = scheduleSlots.find((weekSlot) => {
+                const weekSlotString = buildSlotString(weekSlot);
+                return weekSlotString === slotString;
+            });
+
+            if (matchedSlot) {
+                selectedSlot = matchedSlot;
+            }
+        }
+
+        if (selectedSlot) {
+            if (selectedSlot.bookingEnabled === false) {
+                return res.status(400).json({
+                    success: false,
+                    message: "No more booking for this time slot"
+                });
+            }
+
+            if (Number.isInteger(selectedSlot.maxAppointments) && selectedSlot.maxAppointments > 0) {
+                const selectedSlotString = buildSlotString(selectedSlot);
+                const bookedCountForSlot = existingAppointments.filter(
+                    (appointment) => appointment.slot === selectedSlotString
+                ).length;
+
+                if (bookedCountForSlot >= selectedSlot.maxAppointments) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "This time slot is fully booked"
+                    });
+                }
+            }
+
+            slotString = buildSlotString(selectedSlot);
+        }
 
         if (!slotString && startTime && endTime) {
             const start = formatTimeTo12Hour(startTime);
             const end = formatTimeTo12Hour(endTime);
             if (start && end) {
                 slotString = `${start} - ${end}`;
-            }
-        }
-
-        const dayName = getDayNameFromDate(date);
-        const daySchedule = doctor?.weeklySchedule?.get
-            ? doctor.weeklySchedule.get(dayName)
-            : doctor?.weeklySchedule?.[dayName];
-
-        const matchedSlot = daySchedule?.slots?.find((weekSlot) => {
-            if (!weekSlot) return false;
-
-            if (startTime && endTime) {
-                return weekSlot.startTime === startTime && weekSlot.endTime === endTime;
-            }
-
-            const weekSlotString = `${formatTimeTo12Hour(weekSlot.startTime)} - ${formatTimeTo12Hour(weekSlot.endTime)}`;
-            return weekSlotString === slotString;
-        });
-
-        if (matchedSlot && matchedSlot.bookingEnabled === false) {
-            return res.status(400).json({
-                success: false,
-                message: "No more booking for this time slot"
-            });
-        }
-
-        if (matchedSlot && Number.isInteger(matchedSlot.maxAppointments) && matchedSlot.maxAppointments > 0) {
-            const bookedCountForSlot = existingAppointments.filter((appointment) => appointment.slot === slotString).length;
-
-            if (bookedCountForSlot >= matchedSlot.maxAppointments) {
-                return res.status(400).json({
-                    success: false,
-                    message: "This time slot is fully booked"
-                });
             }
         }
 

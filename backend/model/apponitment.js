@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import counterModel from "./counter.model.js";
+import tokenCounterModel from "./tokenCounter.model.js";
 const AppointmentSchema = new mongoose.Schema({
   patient: {
     type: String,
@@ -79,46 +80,29 @@ const AppointmentSchema = new mongoose.Schema({
 
 
 AppointmentSchema.pre('save', async function (next) {
-  // Only generate token if it's still the temporary one
-  if (this.token.startsWith('TEMP-')) {
-    let attempts = 0;
-    const maxAttempts = 3;
-    let tokenGenerated = false;
+  try {
+    // Only generate token if it's still the temporary one
+    if (this.token && this.token.startsWith('TEMP-')) {
+      const rawDate = new Date(this.date);
+      const dateKey = Number.isNaN(rawDate.getTime())
+        ? new Date().toISOString().split("T")[0]
+        : rawDate.toISOString().split("T")[0];
 
-    while (attempts < maxAttempts && !tokenGenerated) {
-      try {
-        // Get the last appointment from the same day
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
+      const counter = await tokenCounterModel.findOneAndUpdate(
+        { date: dateKey },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
 
-        const lastAppointment = await this.constructor.findOne({
-          createdAt: { $gte: todayStart }
-        }).sort({ createdAt: -1 });
-
-        let newToken;
-        if (lastAppointment && !lastAppointment.token.startsWith('TEMP-')) {
-          newToken = incrementToken(lastAppointment.token);
-        } else {
-          newToken = generateNewToken();
-        }
-
-        // Verify uniqueness
-        const exists = await this.constructor.findOne({ token: newToken });
-        if (!exists) {
-          this.token = newToken;
-          tokenGenerated = true;
-        }
-      } catch (err) {
-        console.error(`Token generation attempt ${attempts + 1} failed:`, err);
-      }
-      attempts++;
+      const dateStr = dateKey.replace(/-/g, "");
+      const sequence = String(counter.seq).padStart(3, "0");
+      this.token = `AP-${dateStr}-${sequence}`;
     }
 
-    if (!tokenGenerated) {
-      return next(new Error('Failed to generate unique token after multiple attempts'));
-    }
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 });
 
 
@@ -177,29 +161,5 @@ AppointmentSchema.pre("save", async function (next) {
 
 
 
-function generateNewToken() {
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  return `AP-${dateStr}-001`; // Starting sequence
-}
-
-function incrementToken(lastToken) {
-  const parts = lastToken.split('-');
-  if (parts.length === 3 && parts[0] === 'AP') {
-    const sequence = parseInt(parts[2]) + 1;
-    return `AP-${parts[1]}-${sequence.toString().padStart(3, '0')}`;
-  }
-  return generateNewToken(); // Fallback if format is invalid
-}
-
-// Add a post-save hook to clean up any TEMP tokens (just in case)
-AppointmentSchema.post('save', function (error, doc, next) {
-  if (error.name === 'MongoError' && error.code === 11000 && error.keyValue.token) {
-    // Duplicate key error on token
-    doc.token = "TEMP-" + Math.random().toString(36).substring(2, 10);
-    doc.save().then(() => next()).catch(next);
-  } else {
-    next(error);
-  }
-});
 
 export default mongoose.model('Appointment', AppointmentSchema);

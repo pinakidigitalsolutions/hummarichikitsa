@@ -28,6 +28,13 @@ function BookAppointment() {
     return `${hours12}:${minutesStr} ${period}`;
   };
 
+  const timeToMinutes = (time) => {
+    if (!time || !time.includes(':')) return null;
+    const [hours, minutes] = time.split(':').map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    return hours * 60 + minutes;
+  };
+
   // Helper function to check if current time is within slot
   const isCurrentTimeInSlot = (slotStartTime, slotEndTime) => {
     const now = new Date();
@@ -63,6 +70,89 @@ function BookAppointment() {
     return currentTimeInMinutes < startTimeInMinutes;
   };
 
+  const groupSlotsForDisplay = (slots, slotDate, dayLabel) => {
+    if (!Array.isArray(slots) || slots.length === 0) return [];
+
+    const sortedSlots = [...slots].sort((first, second) => {
+      return timeToMinutes(first.startTime) - timeToMinutes(second.startTime);
+    });
+
+    const groups = [];
+    let currentGroup = null;
+
+    sortedSlots.forEach((slot) => {
+      const startMinutes = timeToMinutes(slot.startTime);
+      const endMinutes = timeToMinutes(slot.endTime);
+
+      if (startMinutes === null || endMinutes === null || startMinutes >= endMinutes) {
+        return;
+      }
+
+      const bookingEnabled = slot.bookingEnabled !== false;
+      const maxAppointments = Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+        ? slot.maxAppointments
+        : null;
+      const selectable = isSlotSelectable(slot.startTime, slot.endTime, slotDate);
+      const isCurrentSlot = isToday(new Date(slotDate)) &&
+        isCurrentTimeInSlot(slot.startTime, slot.endTime);
+
+      if (!currentGroup) {
+        currentGroup = {
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          bookingEnabled,
+          maxAppointments,
+          selectable,
+          isCurrentSlot
+        };
+        return;
+      }
+
+      const currentEndMinutes = timeToMinutes(currentGroup.endTime);
+      const canMerge = currentEndMinutes === startMinutes
+        && currentGroup.bookingEnabled === bookingEnabled
+        && currentGroup.maxAppointments === maxAppointments;
+
+      if (canMerge) {
+        currentGroup.endTime = slot.endTime;
+        currentGroup.selectable = currentGroup.selectable || selectable;
+        currentGroup.isCurrentSlot = currentGroup.isCurrentSlot || isCurrentSlot;
+      } else {
+        groups.push(currentGroup);
+        currentGroup = {
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          bookingEnabled,
+          maxAppointments,
+          selectable,
+          isCurrentSlot
+        };
+      }
+    });
+
+    if (currentGroup) {
+      groups.push(currentGroup);
+    }
+
+    return groups.map((group) => {
+      const startTime12 = formatTimeTo12Hour(group.startTime);
+      const endTime12 = formatTimeTo12Hour(group.endTime);
+      const dayPrefix = dayLabel || format(new Date(slotDate), 'EEEE');
+
+      return {
+        id: `${dayPrefix}-${group.startTime}-${group.endTime}`,
+        time: `${startTime12} - ${endTime12}`,
+        displayTime: `${startTime12} - ${endTime12}`,
+        startTime: group.startTime,
+        endTime: group.endTime,
+        startTime12,
+        endTime12,
+        isCurrentSlot: group.isCurrentSlot,
+        selectable: group.selectable
+      };
+    });
+  };
+
   // Helper function to get date label
   const getDateLabel = (date) => {
     if (isToday(date)) return 'Today';
@@ -77,10 +167,16 @@ function BookAppointment() {
      const timeSlot =
     data?.slot ||
     (start && end ? `${start} - ${end}` : "");
+    const hospitalName =
+      data?.hospital?.name ||
+      data?.hospitalName ||
+      selectedDoctor?.hospitalId?.name ||
+      selectedDoctor?.hospital?.name ||
+      "Hospital";
     return `
 Hello ${data.patient}, your appointment is confirmed.
 
-Hospital: ${data?.hospital?.name}
+Hospital: ${hospitalName}
 Appointment No: ${data.appointmentNumber}
 Token: ${data.token}
 
@@ -160,26 +256,7 @@ Thank you – Hummari Chikitsa
       return [];
     }
 
-    return daySchedule.slots.map(slot => {
-      const startTime12 = formatTimeTo12Hour(slot.startTime);
-      const endTime12 = formatTimeTo12Hour(slot.endTime);
-
-      const selectable = isSlotSelectable(slot.startTime, slot.endTime, date);
-      const isCurrentSlot = isToday(new Date(date)) &&
-        isCurrentTimeInSlot(slot.startTime, slot.endTime);
-
-      return {
-        id: slot.slotId || `${selectedDay}-${slot.startTime}-${slot.endTime}`,
-        time: `${startTime12} - ${endTime12}`,
-        displayTime: `${startTime12} - ${endTime12}`,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        startTime12: startTime12,
-        endTime12: endTime12,
-        isCurrentSlot: isCurrentSlot,
-        selectable: selectable
-      };
-    });
+    return groupSlotsForDisplay(daySchedule.slots, date, selectedDay);
   };
 
   // Get available dates for next 7 days based on doctor's schedule
@@ -203,23 +280,11 @@ Thank you – Hummari Chikitsa
       // Check if this day has enabled schedule with slots
       const daySchedule = doctor.weeklySchedule[dayName];
       if (daySchedule && daySchedule.enabled && daySchedule.slots && daySchedule.slots.length > 0) {
+        const groupedSlots = groupSlotsForDisplay(daySchedule.slots, dateString, dayName);
+
         // For today, count only selectable slots
         if (isToday(date)) {
-          const now = new Date();
-          const currentHours = now.getHours();
-          const currentMinutes = now.getMinutes();
-          const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-
-          const selectableSlots = daySchedule.slots.filter(slot => {
-            const [slotStartHours, slotStartMinutes] = slot.startTime.split(':').map(Number);
-            const slotStartTimeInMinutes = slotStartHours * 60 + slotStartMinutes;
-
-            if (isCurrentTimeInSlot(slot.startTime, slot.endTime)) {
-              return true;
-            }
-
-            return currentTimeInMinutes < slotStartTimeInMinutes;
-          });
+          const selectableSlots = groupedSlots.filter(slot => slot.selectable);
 
           if (selectableSlots.length > 0) {
             availableDates.push({
@@ -235,7 +300,7 @@ Thank you – Hummari Chikitsa
             date: dateString,
             label: getDateLabel(date),
             day: dayName,
-            slots: daySchedule.slots.length,
+            slots: groupedSlots.length,
             isToday: false
           });
         }

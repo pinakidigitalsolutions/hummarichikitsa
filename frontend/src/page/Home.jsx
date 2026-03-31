@@ -100,6 +100,8 @@ const HospitalSkeleton = () => (
 const Home = () => {
   const colors = { primary: '#0d9488' };
   const navigate = useNavigate();
+  const isLoggedInLocal = localStorage.getItem('isLoggedIn');
+  const cachedRole = localStorage.getItem('role');
   const hospital = useSelector((state) => state.hospitals.hospitals);
   const { isLoggedIn, data: currentUser } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -112,6 +114,12 @@ const Home = () => {
 
   const [appointments, setAppointments] = useState([]);
   const [doctors, setdoctors] = useState([]);
+
+  useEffect(() => {
+    if (isLoggedInLocal === 'true' && cachedRole === 'doctor') {
+      navigate('/doctor/dashboard', { replace: true });
+    }
+  }, [isLoggedInLocal, cachedRole, navigate]);
 
   const mergeDoctorUpdate = (prevDoctors, updatedDoctor) => {
     const safeDoctors = Array.isArray(prevDoctors) ? prevDoctors : [];

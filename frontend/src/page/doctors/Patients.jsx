@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Dashboard from '../../components/Layout/Dashboard';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppointmentConferm, getAllAppointment, mergeAppointmentFromSocket } from '../../Redux/appointment';
@@ -12,6 +12,7 @@ const Patients = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
+    const dateFilterRef = useRef(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -109,6 +110,24 @@ const Patients = () => {
         };
     }, [dispatch, role, authUser]);
 
+    useEffect(() => {
+        if (!isDateFilterOpen) return;
+
+        const handleOutsideClick = (event) => {
+            if (dateFilterRef.current && !dateFilterRef.current.contains(event.target)) {
+                setIsDateFilterOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        document.addEventListener('touchstart', handleOutsideClick);
+
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick);
+            document.removeEventListener('touchstart', handleOutsideClick);
+        };
+    }, [isDateFilterOpen]);
+
     // Filter appointments based on search and selected date
     const filteredAppointments = appointments?.filter(appointment => {
         const matchesSearch =
@@ -192,7 +211,7 @@ const Patients = () => {
                     className="bg-white min-h-[calc(100vh-50px)] rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md"
                 >
                     <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="relative w-full md:w-auto">
+                        <div className="relative w-full md:w-auto" ref={dateFilterRef}>
                             <motion.button
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.97 }}
