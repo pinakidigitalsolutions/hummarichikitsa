@@ -73,6 +73,12 @@ const AppointmentSchema = new mongoose.Schema({
     default: function () {
       return "TEMP-" + Math.random().toString(36).substring(2, 10); // Temporary unique ID
     }
+  },
+  startTime: {
+    type: String,
+  },
+  endTime: {
+    type: String,
   }
 }, {
   timestamps: true,

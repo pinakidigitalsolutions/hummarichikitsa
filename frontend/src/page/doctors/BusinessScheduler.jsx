@@ -168,7 +168,6 @@ const BusinessScheduler = () => {
     const [autoSplitEnabled, setAutoSplitEnabled] = useState(false);
 
     const AUTO_SPLIT_INTERVAL_MINUTES = 15;
-    const AUTO_SPLIT_MAX_APPOINTMENTS = 5;
 
     const forceUpdate = () => setRefresh(!refresh);
 
@@ -201,12 +200,16 @@ const BusinessScheduler = () => {
         }
 
         const intervals = [];
+        const capacity = Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0 
+            ? slot.maxAppointments 
+            : null;
+
         for (let current = startMinutes; current < endMinutes; current += AUTO_SPLIT_INTERVAL_MINUTES) {
             const next = Math.min(current + AUTO_SPLIT_INTERVAL_MINUTES, endMinutes);
             intervals.push({
                 open: minutesToTime(current),
                 close: minutesToTime(next),
-                maxAppointments: AUTO_SPLIT_MAX_APPOINTMENTS,
+                maxAppointments: capacity,
                 bookingEnabled: slot.bookingEnabled !== false
             });
         }
@@ -222,8 +225,7 @@ const BusinessScheduler = () => {
             return false;
         }
 
-        return endMinutes - startMinutes === AUTO_SPLIT_INTERVAL_MINUTES
-            && slot.maxAppointments === AUTO_SPLIT_MAX_APPOINTMENTS;
+        return endMinutes - startMinutes === AUTO_SPLIT_INTERVAL_MINUTES;
     };
 
     const mergeAutoSplitSlots = (slots) => {
@@ -238,9 +240,7 @@ const BusinessScheduler = () => {
             const startMinutes = timeToMinutes(slot.startTime);
             const endMinutes = timeToMinutes(slot.endTime);
             const duration = endMinutes - startMinutes;
-            const isAutoSplitSlot =
-                duration === AUTO_SPLIT_INTERVAL_MINUTES &&
-                slot.maxAppointments === AUTO_SPLIT_MAX_APPOINTMENTS;
+            const isAutoSplitSlot = duration === AUTO_SPLIT_INTERVAL_MINUTES;
 
             if (!isAutoSplitSlot || startMinutes === null || endMinutes === null || startMinutes >= endMinutes) {
                 mergedSlots.push(
@@ -251,6 +251,7 @@ const BusinessScheduler = () => {
 
             let groupStart = slot.startTime;
             let groupEnd = slot.endTime;
+            let groupCapacity = slot.maxAppointments;
             let groupIndex = i;
 
             while (groupIndex + 1 < sortedSlots.length) {
@@ -260,7 +261,7 @@ const BusinessScheduler = () => {
                 const nextDuration = nextEnd - nextStart;
                 const isNextAutoSplit =
                     nextDuration === AUTO_SPLIT_INTERVAL_MINUTES &&
-                    nextSlot.maxAppointments === AUTO_SPLIT_MAX_APPOINTMENTS &&
+                    nextSlot.maxAppointments === groupCapacity &&
                     nextSlot.bookingEnabled === slot.bookingEnabled;
 
                 if (!isNextAutoSplit) {
@@ -277,7 +278,7 @@ const BusinessScheduler = () => {
             }
 
             mergedSlots.push(
-                new Slot(groupStart, groupEnd, slot.maxAppointments, slot.bookingEnabled)
+                new Slot(groupStart, groupEnd, groupCapacity, slot.bookingEnabled)
             );
             i = groupIndex;
         }
@@ -454,9 +455,6 @@ const BusinessScheduler = () => {
         console.log(`Toggling ${day} to ${state}`);
         const newSchedule = schedule.clone();
         newSchedule.days[day].enable(state);
-        if (!state) {
-            newSchedule.days[day].slots = [];
-        }
         setSchedule(newSchedule);
         forceUpdate();
     };
@@ -717,7 +715,7 @@ const BusinessScheduler = () => {
             </div>
             {autoSplitEnabled && (
                 <p className="mt-3 text-xs text-slate-500">
-                    Each time range will be split into 15-minute slots with {AUTO_SPLIT_MAX_APPOINTMENTS} appointments per slot.
+                    Each time range will be split into 15-minute slots internally when saving.
                 </p>
             )}
         </div>
@@ -791,19 +789,20 @@ const BusinessScheduler = () => {
 
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
                                             <div className="w-full sm:w-auto flex-1">
-                                                <label className="block text-xs sm:text-sm text-slate-600 mb-1">Max appointments (leave empty for unlimited)</label>
+                                                <label className="block text-xs sm:text-sm text-slate-600 mb-1">
+                                                    {autoSplitEnabled 
+                                                        ? `Max appointments for this range (split into 15-min intervals)` 
+                                                        : "Max appointments (leave empty for unlimited)"}
+                                                </label>
                                                 <input
                                                     type="number"
                                                     min="1"
-                                                    value={autoSplitEnabled
-                                                        ? AUTO_SPLIT_MAX_APPOINTMENTS
-                                                        : Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+                                                    value={Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
                                                             ? slot.maxAppointments
                                                             : ''}
                                                     onChange={(e) => updateSlotCapacity(dayObj.name, index, e.target.value)}
                                                     placeholder="Unlimited"
-                                                    disabled={autoSplitEnabled}
-                                                    className={`w-full bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${autoSplitEnabled ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
+                                                    className={`w-full bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base`}
                                                 />
                                             </div>
 

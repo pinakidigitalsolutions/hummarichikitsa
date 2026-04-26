@@ -44,7 +44,7 @@ const DoctorDetailPage = () => {
         // Format minutes with leading zero if needed
         const minutesStr = minutes.toString().padStart(2, '0');
 
-        return `${hours12}:${minutesStr} ${period}`;
+        return `${hours12.toString().padStart(2, '0')}:${minutesStr} ${period}`;
     };
 
     const timeToMinutes = (time) => {
