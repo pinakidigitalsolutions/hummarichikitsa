@@ -136,8 +136,10 @@ const AppointmentsSection = ({ isLoggedIn, currentUser, appointments, doctors, h
           ) : filteredAppointments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredAppointments.slice(0, 3).map((appointment) => {
-                // Fixed: Handle both object and string doctorId
-                const doctor = hospitalDoctor?.find(d => d?._id === (appointment?.doctorId?._id || appointment.doctorId));
+                // Prioritize populated doctorId object, fallback to searching in hospitalDoctor
+                const doctor = typeof appointment?.doctorId === 'object' 
+                  ? { ...appointment.doctorId, ...hospitalDoctor?.find(d => d?._id === appointment.doctorId._id) }
+                  : hospitalDoctor?.find(d => d?._id === appointment.doctorId);
                 const hospitalInfo = hospital?.find(h => h._id === appointment?.hospitalId);
 
                 // Get time slot using helper function

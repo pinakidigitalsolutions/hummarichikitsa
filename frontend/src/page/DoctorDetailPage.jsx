@@ -653,8 +653,12 @@ Thank you – Hummari Chikitsa
                                 </div>
                             </div>
 
+
+                            
+
                             {/* Booking Section */}
-                            <div className="lg:col-span-1">
+
+                            {/* <div className="lg:col-span-1">
                                 <div className="bg-white rounded-xl shadow-md p-6 sticky top-24 border border-gray-100">
                                     <div className="border-b pb-4 mb-4">
                                         <h2 className="text-xl font-semibold text-gray-800 mb-1">
@@ -669,19 +673,19 @@ Thank you – Hummari Chikitsa
                                         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                                             {bookingDisabledMessage}
                                         </div>
-                                    )}
+                                    )} */}
 
                                     {/* Calendar Picker */}
-                                    <div className="mb-8">
+                                    {/* <div className="mb-8">
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
                                             <Calendar className="h-4 w-4 text-teal-600" />
                                             <span>Choose Appointment Date</span>
                                         </label>
 
                                         <div className="bg-white rounded-lg border border-gray-100 shadow-[0px_2px_8px_rgba(0,0,0,0.05)] overflow-hidden">
-                                            <div className="space-y-1">
+                                            <div className="space-y-1"> */}
                                                 {/* Date Selection Buttons - Next 7 Days */}
-                                                {availableDates.length > 0 ? (
+                                                {/* {availableDates.length > 0 ? (
                                                     <div className="flex items-center gap-2 overflow-x-auto pb-2">
                                                         {availableDates.map((dateInfo) => (
                                                             <button
@@ -725,8 +729,8 @@ Thank you – Hummari Chikitsa
 
 
 
-                                                {/* Error Message */}
-                                                {errormessage && (
+                                                Error Message */}
+                                                {/* {errormessage && (
                                                     <div className="flex items-center text-red-500 text-xs py-2 ml-1">
                                                         <svg
                                                             xmlns="http://www.w3.org/2000/svg"
@@ -745,10 +749,10 @@ Thank you – Hummari Chikitsa
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> */}
 
                                     {/* Time Slot Selection */}
-                                    <div className="mb-8">
+                                    {/* <div className="mb-8">
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
                                             <Clock className="h-4 w-4 text-teal-600" />
                                             <span>Select Time Slot</span>
@@ -827,14 +831,14 @@ Thank you – Hummari Chikitsa
                                                 <p className="text-sm text-gray-500">Please select a date first</p>
                                             </div>
                                         )}
-                                    </div>
+                                    </div> */}
 
                                     {/* Patient Information Form */}
-                                    <div className="space-y-4 bg-white p-6 rounded-xl border border-gray-100 shadow-sm mb-6">
-                                        <h3 className="text-lg font-medium text-gray-800 mb-2">Patient Details</h3>
+                                    {/* <div className="space-y-4 bg-white p-6 rounded-xl border border-gray-100 shadow-sm mb-6">
+                                        <h3 className="text-lg font-medium text-gray-800 mb-2">Patient Details</h3> */}
 
                                         {/* Patient Name Field */}
-                                        <div className="space-y-1">
+                                        {/* <div className="space-y-1">
                                             <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                                                 <User className="h-4 w-4 text-teal-600" />
                                                 Patient Name
@@ -851,7 +855,7 @@ Thank you – Hummari Chikitsa
                                         </div>
 
                                         {/* Mobile Number Field */}
-                                        <div className="space-y-1">
+                                        {/* <div className="space-y-1">
                                             <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                                                 <Smartphone className="h-4 w-4 text-teal-600" />
                                                 Mobile Number
@@ -880,10 +884,10 @@ Thank you – Hummari Chikitsa
                                             <p className="text-xs text-gray-500 mt-1">
                                                 We'll send appointment confirmation via WhatsApp
                                             </p>
-                                        </div>
+                                        </div> */}
 
                                         {/* Date of Birth Field */}
-                                        <div className="space-y-1">
+                                        {/* <div className="space-y-1">
                                             <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                                                 <Calendar className="h-4 w-4 text-teal-600" />
                                                 Age
@@ -903,10 +907,10 @@ Thank you – Hummari Chikitsa
                                                 maxLength={3}
                                             />
                                         </div>
-                                    </div>
+                                    </div> */}
 
                                     {/* Payment Summary */}
-                                    <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+                                    {/* <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
                                         <div className="flex justify-between items-center mb-2">
                                             <span className="text-gray-600">Consultation Fee</span>
                                             <span className="font-medium text-gray-800">₹{doctor?.consultationFee || 0}</span>
@@ -922,7 +926,7 @@ Thank you – Hummari Chikitsa
                                     </div>
 
                                     {/* Book Button */}
-                                    {Loading ? (
+                                    {/* {Loading ? (
                                         <button
                                             className="w-full py-3 rounded-lg font-medium flex items-center justify-center transition bg-gray-300 text-gray-500 cursor-not-allowed"
                                             disabled
@@ -951,6 +955,34 @@ Thank you – Hummari Chikitsa
                                             Please login to book an appointment
                                         </p>
                                     )}
+                                </div>
+                            </div> */}
+                        {/* </div> */}
+
+                            
+                            <div className="lg:col-span-1">
+                                <div className="bg-white rounded-xl shadow-md p-8 sticky top-24 border border-amber-100 text-center">
+                                    <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Smartphone className="h-8 w-8 text-amber-600" />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-gray-800 mb-4">
+                                        Booking via App Disabled
+                                    </h2>
+                                    <p className="text-gray-600 mb-8 leading-relaxed">
+                                        Hospital did not allowed to book appointment for patient via app. Please contact the hospital directly to book your appointment.
+                                    </p>
+                                    <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+                                        <p className="text-xs text-slate-500 mb-1 uppercase tracking-wider font-bold">Hospital Contact Number</p>
+                                        <a 
+                                            href={`tel:${hospital?.phone}`} 
+                                            className="text-2xl font-extrabold text-blue-700 hover:text-blue-800 transition-colors"
+                                        >
+                                            {hospital?.phone || 'Contact Hospital'}
+                                        </a>
+                                    </div>
+                                    <p className="mt-6 text-sm text-gray-500 italic">
+                                        Please mention "Hummari Chikitsa" for faster processing.
+                                    </p>
                                 </div>
                             </div>
                         </div>

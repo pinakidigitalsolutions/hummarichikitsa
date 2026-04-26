@@ -138,6 +138,29 @@ export const createAppointment = async (req, res) => {
             })
         }
 
+        // Auto-link to existing user if patientId is not provided but mobile exists
+        let finalPatientId = patientId;
+        if (!finalPatientId && mobile) {
+            const cleanMobile = mobile.replace(/\D/g, '');
+            const mobileOptions = [mobile];
+            
+            if (cleanMobile.length === 10) {
+                mobileOptions.push('+91' + cleanMobile);
+                mobileOptions.push('91' + cleanMobile);
+                mobileOptions.push(cleanMobile);
+            } else if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) {
+                const tenDigit = cleanMobile.substring(2);
+                mobileOptions.push(tenDigit);
+                mobileOptions.push('+91' + tenDigit);
+                mobileOptions.push(cleanMobile);
+            }
+            
+            const registeredUser = await User.findOne({ userid: { $in: mobileOptions } });
+            if (registeredUser) {
+                finalPatientId = registeredUser._id;
+            }
+        }
+
         const existingAppointments = await apponitment.find({
             doctorId: doctorId,
             date: date,
@@ -344,7 +367,7 @@ export const createAppointment = async (req, res) => {
             patient,
             mobile,
             dob,
-            patientId,
+            patientId: finalPatientId,
             doctorId,
             hospitalId,
             date,
@@ -416,15 +439,28 @@ export const verifyPayment = async (req, res) => {
 // Get all appointments
 export const getAppointments = async (req, res) => {
     try {
-        const { role, _id } = req.user;
-        const user = await User.findById(_id)
+        const { role, _id, userid } = req.user;
         let query = {};
         // Filter based on user role
         if (role === "patient") {
+            const cleanUserid = (userid || '').replace(/\D/g, '');
+            const mobileOptions = [userid];
+            
+            if (cleanUserid.length === 10) {
+                mobileOptions.push('+91' + cleanUserid);
+                mobileOptions.push('91' + cleanUserid);
+                mobileOptions.push(cleanUserid);
+            } else if (cleanUserid.length === 12 && cleanUserid.startsWith('91')) {
+                const tenDigit = cleanUserid.substring(2);
+                mobileOptions.push(tenDigit);
+                mobileOptions.push('+91' + tenDigit);
+                mobileOptions.push(cleanUserid);
+            }
+
             query = {
                 $or: [
                     { patientId: _id },
-                    { mobile: user?.userid }
+                    { mobile: { $in: mobileOptions } }
                 ]
             };
 
@@ -437,7 +473,7 @@ export const getAppointments = async (req, res) => {
         }
 
         const appointments = await apponitment.find(query)
-            .populate("doctorId", "currentAppointment availability name specialty")
+            .populate("doctorId", "currentAppointment availability name specialty active status")
             .populate("hospitalId", "name city")
             .sort({ createdAt: -1 });
 
@@ -571,7 +607,7 @@ export const updateAppointmentStatus = async (req, res) => {
             }
 
             if (!doctor.active && !forceComplete) {
-                return res.status(200).json({
+                return res.status(400).json({
                     success: false,
                     message: "Doctor inactive"
                 });
@@ -589,10 +625,10 @@ export const updateAppointmentStatus = async (req, res) => {
             }
         } else if (appointment.status === 'confirmed') {
             status = 'check-in';
-            // Update doctor's current appointment when someone checks in
+            // Update doctor's current appointment when someone checks in, but only if it's greater than the current one
             await doctorNodel.findByIdAndUpdate(
                 appointment.doctorId,
-                { currentAppointment: appointment.appointmentNumber },
+                { $max: { currentAppointment: appointment.appointmentNumber } },
                 { new: true }
             );
         } else if (appointment.status === 'check-in') {

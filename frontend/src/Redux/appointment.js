@@ -14,7 +14,7 @@ const initialState = {
 
 export const AppointmentCreate = createAsyncThunk(
     "appointment/create", // Changed to match slice name
-    async (data) => {
+    async (data, { rejectWithValue }) => {
         try {
             const response = axiosInstance.post("/appointment", data);
             toast.promise(response, {
@@ -29,13 +29,13 @@ export const AppointmentCreate = createAsyncThunk(
 
             return (await response).data
         } catch (error) {
-            return toast.error(error.response?.data?.message || "Failed to create appointment");
+            return rejectWithValue(error.response?.data?.message || "Failed to create appointment");
         }
     }
 );
 export const AppointmentConferm = createAsyncThunk(
     "appointment/confirmd", // Changed to match slice name
-    async (data) => {
+    async (data, { rejectWithValue }) => {
         try {
             const appointmentId = typeof data === 'object' ? data?.appointmentId : data;
             const forceComplete = typeof data === 'object' && data?.forceComplete === true;
@@ -57,13 +57,13 @@ export const AppointmentConferm = createAsyncThunk(
              
             return (await response).data
         } catch (error) {
-            return toast.error(error.response?.data?.message || "Appointment booking failed.");
+            return rejectWithValue(error.response?.data?.message || "Appointment booking failed.");
         }
     }
 );
 export const AppointmentCancelled = createAsyncThunk(
     "appointment/cancel", // Changed to match slice name
-    async (data) => {
+    async (data, { rejectWithValue }) => {
         try {
             
             const response = axiosInstance.patch(`/appointment/${data}/cancel`, {
@@ -81,7 +81,7 @@ export const AppointmentCancelled = createAsyncThunk(
 
             return (await response).data
         } catch (error) {
-            return toast.error(error.response?.data?.message || "Appointment cancelled failed.");
+            return rejectWithValue(error.response?.data?.message || "Appointment cancelled failed.");
         }
     }
 );

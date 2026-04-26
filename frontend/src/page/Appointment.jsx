@@ -444,13 +444,19 @@ function Appointment() {
         })()
     }, [])
 
+    const [isFetching, setIsFetching] = useState(true);
+
     useEffect(() => {
-        if (!appoint || appoint.length === 0) {
-            (async () => {
-                await dispatch(getAllAppointment())
-            })()
-        }
-    }, [])
+        let isMounted = true;
+        setIsFetching(true);
+        dispatch(getAllAppointment());
+        
+        setTimeout(() => {
+            if (isMounted) setIsFetching(false);
+        }, 1000);
+        
+        return () => { isMounted = false; };
+    }, [dispatch]);
 
     // Check if appointment is for today
     const isToday = (appointmentDate) => {
@@ -514,9 +520,11 @@ function Appointment() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }, []);
 
-    if (isLoading && (!appoint || appoint.length === 0)) {
-        return (
-            <Layout>
+    const showSkeleton = isFetching || (isLoading && (!appoint || appoint.length === 0));
+
+    return (
+        <Layout>
+            {showSkeleton ? (
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <SkeletonCard layout="vertical" />
@@ -527,12 +535,7 @@ function Appointment() {
                         <SkeletonCard layout="vertical" />
                     </div>
                 </div>
-            </Layout>
-        );
-    }
-
-    return (
-        <Layout>
+            ) : (
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                     <h1 className="text-2xl font-bold text-gray-900">My Appointments</h1>
@@ -594,7 +597,9 @@ function Appointment() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredAppointments.map((appointment) => {
-                            const doctor = doctors?.find(d => d?._id === (appointment?.doctorId?._id || appointment.doctorId));
+                            const doctor = typeof appointment?.doctorId === 'object' 
+                              ? { ...appointment.doctorId, ...doctors?.find(d => d?._id === appointment.doctorId._id) }
+                              : doctors?.find(d => d?._id === appointment.doctorId);
                             const hospitalInfo = hospital?.find(h => h._id === appointment?.hospitalId);
 
                             // Get time slot using helper function
@@ -749,6 +754,7 @@ function Appointment() {
                     </div>
                 )}
             </div>
+            )}
         </Layout>
     )
 }

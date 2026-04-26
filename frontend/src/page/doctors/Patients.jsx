@@ -13,16 +13,20 @@ const Patients = () => {
     const navigate = useNavigate();
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
     const dateFilterRef = useRef(null);
+    const isFirstMount = useRef(true);
 
-    const [searchTerm, setSearchTerm] = useState('');
-    const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState(null);
-    const [dateRangeStart, setDateRangeStart] = useState(null);
-    const [dateRangeEnd, setDateRangeEnd] = useState(null);
-    const [filterMode, setFilterMode] = useState('single'); // 'single' or 'range'
+    const [searchTerm, setSearchTerm] = useState(localStorage.getItem('patientSearchTerm') || '');
+    const [currentMonth, setCurrentMonth] = useState(() => {
+        const savedDate = localStorage.getItem('patientSelectedDate');
+        return savedDate ? new Date(savedDate) : new Date();
+    });
+    const [selectedDate, setSelectedDate] = useState(localStorage.getItem('patientSelectedDate') || null);
+    const [dateRangeStart, setDateRangeStart] = useState(localStorage.getItem('patientDateRangeStart') || null);
+    const [dateRangeEnd, setDateRangeEnd] = useState(localStorage.getItem('patientDateRangeEnd') || null);
+    const [filterMode, setFilterMode] = useState(localStorage.getItem('patientFilterMode') || 'single'); // 'single' or 'range'
     const [appointmentsByDate, setAppointmentsByDate] = useState({});
     const [isLoading, setIsLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(parseInt(localStorage.getItem('patientCurrentPage')) || 1);
     const ITEMS_PER_PAGE = 10;
     // Professional healthcare color scheme
     const colors = {
@@ -149,6 +153,10 @@ const Patients = () => {
         }
 
         return matchesSearch && matchesDate;
+    }).sort((a, b) => {
+        if (a.status === 'check-in' && b.status !== 'check-in') return -1;
+        if (a.status !== 'check-in' && b.status === 'check-in') return 1;
+        return 0;
     });
 
     // Calculate pagination
@@ -158,9 +166,46 @@ const Patients = () => {
         ? filteredAppointments 
         : filteredAppointments?.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
+    // Persist filters to localStorage
+    useEffect(() => {
+        localStorage.setItem('patientSearchTerm', searchTerm);
+        localStorage.setItem('patientFilterMode', filterMode);
+        
+        if (selectedDate) {
+            localStorage.setItem('patientSelectedDate', selectedDate);
+        } else {
+            localStorage.removeItem('patientSelectedDate');
+        }
+
+        if (dateRangeStart) {
+            localStorage.setItem('patientDateRangeStart', dateRangeStart);
+        } else {
+            localStorage.removeItem('patientDateRangeStart');
+        }
+
+        if (dateRangeEnd) {
+            localStorage.setItem('patientDateRangeEnd', dateRangeEnd);
+        } else {
+            localStorage.removeItem('patientDateRangeEnd');
+        }
+        localStorage.setItem('patientCurrentPage', currentPage.toString());
+    }, [searchTerm, selectedDate, dateRangeStart, dateRangeEnd, filterMode, currentPage]);
+
     // Reset to first page when filter/search changes
     useEffect(() => {
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            return;
+        }
         setCurrentPage(1);
+        
+        // Show skeleton when filters change
+        setIsLoading(true);
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 600);
+        
+        return () => clearTimeout(timer);
     }, [selectedDate, searchTerm, dateRangeStart, dateRangeEnd, filterMode]);
 
     // Get dates for current month view
@@ -196,6 +241,25 @@ const Patients = () => {
         await dispatch(getAllAppointment());
     };
 
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setSelectedDate(null);
+        setDateRangeStart(null);
+        setDateRangeEnd(null);
+        setFilterMode('single');
+        setCurrentPage(1);
+        
+        localStorage.removeItem('patientSearchTerm');
+        localStorage.removeItem('patientSelectedDate');
+        localStorage.removeItem('patientDateRangeStart');
+        localStorage.removeItem('patientDateRangeEnd');
+        localStorage.removeItem('patientFilterMode');
+        localStorage.setItem('patientCurrentPage', '1');
+        
+        setIsLoading(true);
+        setTimeout(() => setIsLoading(false), 500);
+    };
+
     return (
         <Dashboard>
             <motion.div
@@ -224,6 +288,23 @@ const Patients = () => {
                             >
                                 {isDateFilterOpen ? 'Hide Calendar' : 'Filter by Date'}
                             </motion.button>
+
+                            {(searchTerm || selectedDate || dateRangeStart || dateRangeEnd) && (
+                                <motion.button
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    className="ml-0 md:ml-3 mt-2 md:mt-0 px-4 py-2 rounded-lg font-medium w-full md:w-auto"
+                                    style={{
+                                        backgroundColor: `${colors.danger}15`,
+                                        color: colors.danger
+                                    }}
+                                    onClick={handleClearFilters}
+                                >
+                                    Clear Filters
+                                </motion.button>
+                            )}
 
                             <AnimatePresence>
                                 {isDateFilterOpen && (

@@ -813,9 +813,9 @@ const DoctorDashboard = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const [appointments, setAppointments] = useState(() => (Array.isArray(todayAppointments) ? todayAppointments : []));
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [filterDoctor, setFilterDoctor] = useState('all');
+    const [searchTerm, setSearchTerm] = useState(localStorage.getItem('dashSearchTerm') || '');
+    const [filterStatus, setFilterStatus] = useState(localStorage.getItem('dashFilterStatus') || 'all');
+    const [filterDoctor, setFilterDoctor] = useState(localStorage.getItem('dashFilterDoctor') || 'all');
     const [showFilters, setShowFilters] = useState(false);
     const [Doctors, setDoctors] = useState([]);
     const [active, setactive] = useState(true);
@@ -834,6 +834,13 @@ const DoctorDashboard = () => {
         });
     }, []);
 
+
+    // Persist filters to localStorage
+    useEffect(() => {
+        localStorage.setItem('dashSearchTerm', searchTerm);
+        localStorage.setItem('dashFilterStatus', filterStatus);
+        localStorage.setItem('dashFilterDoctor', filterDoctor);
+    }, [searchTerm, filterStatus, filterDoctor]);
 
     const filterRef = useRef(null);
 
@@ -932,12 +939,16 @@ const DoctorDashboard = () => {
             return matchesSearch && matchesFilter && matchesDoctor;
         });
 
-        return filtered;
+        return filtered?.sort((a, b) => {
+            if (a.status === 'check-in' && b.status !== 'check-in') return -1;
+            if (a.status !== 'check-in' && b.status === 'check-in') return 1;
+            return 0;
+        });
     }, [appointments, searchTerm, filterStatus, filterDoctor]);
 
     // Get appointments with status filter
     const getAppointment = useCallback(async ({ showLoader = false } = {}) => {
-        if (showLoader && (!appointments || appointments.length === 0)) {
+        if (showLoader) {
             setIsLoading(true);
         }
         try {
@@ -961,7 +972,7 @@ const DoctorDashboard = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [dispatch, mergeAppointmentsPreservePaid, appointments]);
+    }, [dispatch, mergeAppointmentsPreservePaid]);
 
     useEffect(() => {
         if (!Array.isArray(todayAppointments) || todayAppointments.length === 0) return;
@@ -973,12 +984,16 @@ const DoctorDashboard = () => {
     const handleFilterChange = useCallback((status) => {
         setFilterStatus(status);
         setShowFilters(false);
-        getAppointment({ showLoader: false });
+        getAppointment({ showLoader: true });
     }, [getAppointment]);
 
     // Handle doctor filter change
     const handleDoctorFilterChange = useCallback((doctorId) => {
+        setIsLoading(true);
         setFilterDoctor(doctorId);
+        setTimeout(() => {
+            setIsLoading(false);
+        }, 500);
     }, []);
 
     // Optimized ConfirmAppointment function
@@ -1039,6 +1054,16 @@ const DoctorDashboard = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    // Show skeleton when search term changes
+    useEffect(() => {
+        if (!searchTerm) return;
+        setIsLoading(true);
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
     // Socket.io event handlers
     useEffect(() => {
@@ -1122,6 +1147,8 @@ const DoctorDashboard = () => {
     }, [dispatch]);
 
     useEffect(() => {
+        let isMounted = true;
+        setIsLoading(true);
         (async () => {
             try {
                 await axiosInstance.patch('/appointment/hospital/patient');
@@ -1136,8 +1163,15 @@ const DoctorDashboard = () => {
                 await dispatch(getAllDoctors());
             } catch (error) {
                 console.error("Error loading data:", error);
+            } finally {
+                if (isMounted) {
+                    setTimeout(() => {
+                        if (isMounted) setIsLoading(false);
+                    }, 1000);
+                }
             }
-        })()
+        })();
+        return () => { isMounted = false; };
     }, [dispatch, getAppointment]);
 
     useEffect(() => {

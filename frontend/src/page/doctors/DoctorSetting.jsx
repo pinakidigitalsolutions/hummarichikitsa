@@ -99,7 +99,11 @@ const DoctorSetting = () => {
                     ...prev,
                     bookingEnabled: nextValue
                 }));
-                toast.success(`Booking ${nextValue ? 'enabled' : 'disabled'} successfully!`);
+            if (nextValue) {
+                toast.success('Booking enabled successfully!');
+            } else {
+                toast.error('Booking disabled successfully!');
+            }
             }
         } catch (error) {
             console.error("Error updating booking status:", error);
@@ -238,12 +242,26 @@ const DoctorSetting = () => {
                     </div>
 
                     {successMessage && (
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
+                        <div className={`border rounded-lg p-4 mb-6 ${
+                            successMessage.toLowerCase().includes('deactivated') || successMessage.toLowerCase().includes('disabled')
+                                ? 'bg-red-50 border-red-200'
+                                : 'bg-emerald-50 border-emerald-200'
+                        }`}>
                             <div className="flex items-center">
-                                <svg className="w-5 h-5 text-emerald-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span className="text-emerald-600">{successMessage}</span>
+                                {successMessage.toLowerCase().includes('deactivated') || successMessage.toLowerCase().includes('disabled') ? (
+                                    <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-5 h-5 text-emerald-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                )}
+                                <span className={
+                                    successMessage.toLowerCase().includes('deactivated') || successMessage.toLowerCase().includes('disabled')
+                                        ? 'text-red-600'
+                                        : 'text-emerald-600'
+                                }>{successMessage}</span>
                             </div>
                         </div>
                     )}
