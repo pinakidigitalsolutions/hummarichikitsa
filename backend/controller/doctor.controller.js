@@ -1563,9 +1563,15 @@ export const updateDoctorSchedule = async (req, res) => {
     // Save only if changed
     if (hasChanges) await doctor.save();
 
+    const updatedDoctor = await Doctor.findById(doctorId).populate("hospitalId", "name location address city state pincode phone email status");
+
+    if (hasChanges) {
+      io.emit("doctorUpdate", updatedDoctor);
+    }
+
     // Convert Map -> Normal Object for response
     const responseSchedule = {};
-    doctor.weeklySchedule.forEach((value, day) => {
+    updatedDoctor.weeklySchedule.forEach((value, day) => {
       responseSchedule[day] = {
         name: value.day,
         enabled: value.enabled,
@@ -1588,6 +1594,7 @@ export const updateDoctorSchedule = async (req, res) => {
         ? "Doctor schedule updated successfully"
         : "No changes detected",
       data: responseSchedule,
+      doctor: updatedDoctor,
     });
   } catch (error) {
     console.error("Error updating doctor schedule:", error);

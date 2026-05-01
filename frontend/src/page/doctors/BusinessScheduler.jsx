@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../Helper/axiosInstance';
 import toast from 'react-hot-toast'
 import Dashboard from '../../components/Layout/Dashboard';
+import { useDispatch } from 'react-redux';
+import { updateDoctorStatus } from '../../Redux/doctorSlice';
 class Slot {
     constructor(startTime = "10:00", endTime = "20:00", maxAppointments = null, bookingEnabled = true) {
         this.startTime = startTime;
         this.endTime = endTime;
         this.maxAppointments = Number.isInteger(maxAppointments) && maxAppointments > 0 ? maxAppointments : null;
+        this.manualMaxAppointments = this.maxAppointments;
         this.bookingEnabled = bookingEnabled !== false;
         // Also store as open/close for compatibility with existing code
         this.open = startTime;
@@ -150,9 +153,14 @@ class BusinessSchedule {
             const clonedDay = new DaySchedule(dayName);
             clonedDay._id = dayObj._id;
             clonedDay.enabled = dayObj.enabled;
-            clonedDay.slots = dayObj.slots.map(
-                (slot) => new Slot(slot.startTime, slot.endTime, slot.maxAppointments, slot.bookingEnabled)
-            );
+            clonedDay.slots = dayObj.slots.map((slot) => {
+                const clonedSlot = new Slot(slot.startTime, slot.endTime, slot.maxAppointments, slot.bookingEnabled);
+                clonedSlot.manualMaxAppointments =
+                    Number.isInteger(slot.manualMaxAppointments) && slot.manualMaxAppointments > 0
+                        ? slot.manualMaxAppointments
+                        : null;
+                return clonedSlot;
+            });
             clonedSchedule.days[dayName] = clonedDay;
         });
         return clonedSchedule;
@@ -160,6 +168,7 @@ class BusinessSchedule {
 }
 
 const BusinessScheduler = () => {
+    const dispatch = useDispatch();
     const [schedule, setSchedule] = useState(new BusinessSchedule());
     const [refresh, setRefresh] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -168,6 +177,7 @@ const BusinessScheduler = () => {
     const [autoSplitEnabled, setAutoSplitEnabled] = useState(false);
 
     const AUTO_SPLIT_INTERVAL_MINUTES = 15;
+    const AUTO_SPLIT_MAX_APPOINTMENTS = 6;
 
     const forceUpdate = () => setRefresh(!refresh);
 
@@ -200,8 +210,8 @@ const BusinessScheduler = () => {
         }
 
         const intervals = [];
-        const capacity = Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0 
-            ? slot.maxAppointments 
+        const capacity = Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+            ? AUTO_SPLIT_MAX_APPOINTMENTS
             : null;
 
         for (let current = startMinutes; current < endMinutes; current += AUTO_SPLIT_INTERVAL_MINUTES) {
@@ -298,6 +308,29 @@ const BusinessScheduler = () => {
             dayObj.slots = mergeAutoSplitSlots(dayObj.slots || []);
         });
         return merged;
+    };
+
+    const applyAutoSplitCapacities = (scheduleToUpdate) => {
+        Object.values(scheduleToUpdate.days).forEach((dayObj) => {
+            dayObj.slots.forEach((slot) => {
+                slot.manualMaxAppointments =
+                    Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+                        ? slot.maxAppointments
+                        : slot.manualMaxAppointments;
+                slot.maxAppointments = AUTO_SPLIT_MAX_APPOINTMENTS;
+            });
+        });
+    };
+
+    const restoreManualSlotCapacities = (scheduleToUpdate) => {
+        Object.values(scheduleToUpdate.days).forEach((dayObj) => {
+            dayObj.slots.forEach((slot) => {
+                slot.maxAppointments =
+                    Number.isInteger(slot.manualMaxAppointments) && slot.manualMaxAppointments > 0
+                        ? slot.manualMaxAppointments
+                        : null;
+            });
+        });
     };
 
 
@@ -523,8 +556,10 @@ const BusinessScheduler = () => {
         const numericValue = Number(value);
         if (value === '' || Number.isNaN(numericValue) || numericValue <= 0) {
             dayObj.slots[index].maxAppointments = null;
+            dayObj.slots[index].manualMaxAppointments = null;
         } else {
             dayObj.slots[index].maxAppointments = Math.floor(numericValue);
+            dayObj.slots[index].manualMaxAppointments = Math.floor(numericValue);
         }
 
         setSchedule(newSchedule);
@@ -600,6 +635,10 @@ const BusinessScheduler = () => {
             });
 
             if (res.data.success) {
+                if (res.data?.doctor?._id) {
+                    dispatch(updateDoctorStatus(res.data.doctor));
+                }
+
                 setSaved(true);
                 setTimeout(() => setSaved(false), 3000);
                 toast.success("Schedule saved successfully!");
@@ -684,7 +723,11 @@ const BusinessScheduler = () => {
                         type="button"
                         onClick={() => {
                             if (autoSplitEnabled) {
+                                const nextSchedule = schedule.clone();
+                                restoreManualSlotCapacities(nextSchedule);
+                                setSchedule(nextSchedule);
                                 setAutoSplitEnabled(false);
+                                forceUpdate();
                                 return;
                             }
 
@@ -692,6 +735,7 @@ const BusinessScheduler = () => {
                             Object.values(mergedSchedule.days).forEach((dayObj) => {
                                 dayObj.slots = mergeAutoSplitSlots(dayObj.slots);
                             });
+                            applyAutoSplitCapacities(mergedSchedule);
 
                             setSchedule(mergedSchedule);
                             setAutoSplitEnabled(true);
@@ -791,7 +835,7 @@ const BusinessScheduler = () => {
                                             <div className="w-full sm:w-auto flex-1">
                                                 <label className="block text-xs sm:text-sm text-slate-600 mb-1">
                                                     {autoSplitEnabled 
-                                                        ? `Max appointments for this range (split into 15-min intervals)` 
+                                                        ? `Max 5 appointments per 15-min interval` 
                                                         : "Max appointments (leave empty for unlimited)"}
                                                 </label>
                                                 <input
@@ -801,8 +845,9 @@ const BusinessScheduler = () => {
                                                             ? slot.maxAppointments
                                                             : ''}
                                                     onChange={(e) => updateSlotCapacity(dayObj.name, index, e.target.value)}
+                                                    readOnly={autoSplitEnabled}
                                                     placeholder="Unlimited"
-                                                    className={`w-full bg-white border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base`}
+                                                    className={`w-full border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${autoSplitEnabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
                                                 />
                                             </div>
 

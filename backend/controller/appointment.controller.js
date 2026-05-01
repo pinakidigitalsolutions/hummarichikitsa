@@ -84,6 +84,67 @@ export const createAppointment = async (req, res) => {
         return `${start} - ${end}`;
     };
 
+    const getSlotCapacity = (slotData) => {
+        if (Number.isInteger(slotData?.maxAppointments) && slotData.maxAppointments > 0) {
+            return slotData.maxAppointments;
+        }
+
+        return null;
+    };
+
+    const getAppointmentTimes = (appointment) => {
+        let appStart = timeToMinutes(appointment.startTime);
+        let appEnd = timeToMinutes(appointment.endTime);
+
+        if (appStart === null || appEnd === null) {
+            const parsed = parseSlotTimes(appointment.slot);
+            appStart = parsed.start;
+            appEnd = parsed.end;
+        }
+
+        return { appStart, appEnd };
+    };
+
+    const appointmentOverlapsSlot = (appointment, slotData) => {
+        const slotStart = timeToMinutes(slotData?.startTime);
+        const slotEnd = timeToMinutes(slotData?.endTime);
+        const { appStart, appEnd } = getAppointmentTimes(appointment);
+
+        if (slotStart === null || slotEnd === null || appStart === null || appEnd === null) {
+            return false;
+        }
+
+        return appStart < slotEnd && appEnd > slotStart;
+    };
+
+    const getBookedCountForSlot = (slotData, appointments) => {
+        return appointments.filter((appointment) => appointmentOverlapsSlot(appointment, slotData)).length;
+    };
+
+    const hasSlotCapacity = (slotData, appointments) => {
+        const capacity = getSlotCapacity(slotData);
+        if (capacity === null) return true;
+        return getBookedCountForSlot(slotData, appointments) < capacity;
+    };
+
+    const findAvailableSlotInRange = (slots, requestedStart, requestedEnd, appointments) => {
+        return slots
+            .filter((weekSlot) => {
+                const slotStart = timeToMinutes(weekSlot.startTime);
+                const slotEnd = timeToMinutes(weekSlot.endTime);
+
+                if (slotStart === null || slotEnd === null) return false;
+                return slotStart >= requestedStart && slotEnd <= requestedEnd;
+            })
+            .sort((firstSlot, secondSlot) => {
+                return timeToMinutes(firstSlot.startTime) - timeToMinutes(secondSlot.startTime);
+            })
+            .find((candidate) => (
+                candidate.bookingEnabled !== false &&
+                hasSlotCapacity(candidate, appointments)
+            ));
+    };
+
 
     try {
         const {
@@ -190,78 +251,21 @@ export const createAppointment = async (req, res) => {
                 const requestedEnd = timeToMinutes(endTime);
 
                 if (requestedStart !== null && requestedEnd !== null && requestedStart < requestedEnd) {
-                    const candidates = scheduleSlots
-                        .filter((weekSlot) => {
-                            const slotStart = timeToMinutes(weekSlot.startTime);
-                            const slotEnd = timeToMinutes(weekSlot.endTime);
+                    const candidates = scheduleSlots.filter((weekSlot) => {
+                        const slotStart = timeToMinutes(weekSlot.startTime);
+                        const slotEnd = timeToMinutes(weekSlot.endTime);
 
-                            if (slotStart === null || slotEnd === null) return false;
-                            return slotStart >= requestedStart && slotEnd <= requestedEnd;
-                        })
-                        .sort((firstSlot, secondSlot) => {
-                            return timeToMinutes(firstSlot.startTime) - timeToMinutes(secondSlot.startTime);
-                        });
+                        if (slotStart === null || slotEnd === null) return false;
+                        return slotStart >= requestedStart && slotEnd <= requestedEnd;
+                    });
 
                     rangeHadSlots = candidates.length > 0;
-
-                    for (const candidate of candidates) {
-                        if (candidate.bookingEnabled === false) {
-                            continue;
-                        }
-
-                        if (Number.isInteger(candidate.maxAppointments) && candidate.maxAppointments > 0) {
-                            // Find the entire contiguous block this candidate belongs to
-                            // (Slots with same capacity and same booking status)
-                            let blockStart = timeToMinutes(candidate.startTime);
-                            let blockEnd = timeToMinutes(candidate.endTime);
-                            
-                            // Look backwards
-                            let idx = scheduleSlots.findIndex(s => s.startTime === candidate.startTime);
-                            for (let i = idx - 1; i >= 0; i--) {
-                                const prev = scheduleSlots[i];
-                                if (prev.maxAppointments === candidate.maxAppointments && 
-                                    prev.bookingEnabled === candidate.bookingEnabled &&
-                                    timeToMinutes(prev.endTime) === blockStart) {
-                                    blockStart = timeToMinutes(prev.startTime);
-                                } else {
-                                    break;
-                                }
-                            }
-                            // Look forwards
-                            for (let i = idx + 1; i < scheduleSlots.length; i++) {
-                                const next = scheduleSlots[i];
-                                if (next.maxAppointments === candidate.maxAppointments && 
-                                    next.bookingEnabled === candidate.bookingEnabled &&
-                                    timeToMinutes(next.startTime) === blockEnd) {
-                                    blockEnd = timeToMinutes(next.endTime);
-                                } else {
-                                    break;
-                                }
-                            }
-
-                            const bookedCountInBlock = existingAppointments.filter((appointment) => {
-                                let appStart = timeToMinutes(appointment.startTime);
-                                let appEnd = timeToMinutes(appointment.endTime);
-                                
-                                // Fallback for existing appointments without explicit time fields
-                                if (appStart === null || appEnd === null) {
-                                    const parsed = parseSlotTimes(appointment.slot);
-                                    appStart = parsed.start;
-                                    appEnd = parsed.end;
-                                }
-
-                                if (appStart === null || appEnd === null) return false;
-                                return appStart >= blockStart && appEnd <= blockEnd;
-                            }).length;
-
-                            if (bookedCountInBlock >= candidate.maxAppointments) {
-                                continue;
-                            }
-                        }
-
-                        selectedSlot = candidate;
-                        break;
-                    }
+                    selectedSlot = findAvailableSlotInRange(
+                        candidates,
+                        requestedStart,
+                        requestedEnd,
+                        existingAppointments
+                    );
 
                     if (!selectedSlot) {
                         const message = rangeHadSlots 
@@ -292,57 +296,11 @@ export const createAppointment = async (req, res) => {
                 });
             }
 
-            if (Number.isInteger(selectedSlot.maxAppointments) && selectedSlot.maxAppointments > 0) {
-                // Find the entire contiguous block this selectedSlot belongs to
-                let blockStart = timeToMinutes(selectedSlot.startTime);
-                let blockEnd = timeToMinutes(selectedSlot.endTime);
-                
-                let idx = scheduleSlots.findIndex(s => s.startTime === selectedSlot.startTime && s.endTime === selectedSlot.endTime);
-                if (idx !== -1) {
-                    // Look backwards
-                    for (let i = idx - 1; i >= 0; i--) {
-                        const prev = scheduleSlots[i];
-                        if (prev.maxAppointments === selectedSlot.maxAppointments && 
-                            prev.bookingEnabled === selectedSlot.bookingEnabled &&
-                            timeToMinutes(prev.endTime) === blockStart) {
-                            blockStart = timeToMinutes(prev.startTime);
-                        } else {
-                            break;
-                        }
-                    }
-                    // Look forwards
-                    for (let i = idx + 1; i < scheduleSlots.length; i++) {
-                        const next = scheduleSlots[i];
-                        if (next.maxAppointments === selectedSlot.maxAppointments && 
-                            next.bookingEnabled === selectedSlot.bookingEnabled &&
-                            timeToMinutes(next.startTime) === blockEnd) {
-                            blockEnd = timeToMinutes(next.endTime);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                const bookedCount = existingAppointments.filter((appointment) => {
-                    let appStart = timeToMinutes(appointment.startTime);
-                    let appEnd = timeToMinutes(appointment.endTime);
-                    
-                    if (appStart === null || appEnd === null) {
-                        const parsed = parseSlotTimes(appointment.slot);
-                        appStart = parsed.start;
-                        appEnd = parsed.end;
-                    }
-
-                    if (appStart === null || appEnd === null) return false;
-                    return appStart >= blockStart && appEnd <= blockEnd;
-                }).length;
-
-                if (bookedCount >= selectedSlot.maxAppointments) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "This time range is already fully booked."
-                    });
-                }
+            if (!hasSlotCapacity(selectedSlot, existingAppointments)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "This time range is already fully booked."
+                });
             }
 
             slotString = buildSlotString(selectedSlot);

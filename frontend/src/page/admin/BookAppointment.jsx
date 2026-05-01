@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { GetDoctorHospitalId, getAllDoctors } from '../../Redux/doctorSlice';
+import { GetDoctorHospitalId, getAllDoctors, updateDoctorStatus } from '../../Redux/doctorSlice';
 import { AppointmentCreate } from '../../Redux/appointment';
 import Dashboard from '../../components/Layout/Dashboard';
 import axiosInstance from '../../Helper/axiosInstance';
 import { jwtDecode } from "jwt-decode";
 import { format, addDays, isToday, isTomorrow, isBefore } from 'date-fns';
 import { motion } from 'framer-motion';
+import socket from '../../Helper/socket';
 
 function BookAppointment() {
   const colors = { primary: '#0d9488' };
@@ -428,6 +429,51 @@ useEffect(() => {
       setAvailableSlots(slots);
     }
   }, [selectedDoctor, availableDates]);
+
+  useEffect(() => {
+    const handleDoctorUpdate = (updatedDoctor) => {
+      if (updatedDoctor?._id) {
+        dispatch(updateDoctorStatus(updatedDoctor));
+      }
+    };
+
+    socket.on("doctorUpdate", handleDoctorUpdate);
+    socket.on("doctoractive", handleDoctorUpdate);
+
+    return () => {
+      socket.off("doctorUpdate", handleDoctorUpdate);
+      socket.off("doctoractive", handleDoctorUpdate);
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!formData.doctorId || !Array.isArray(doctors) || doctors.length === 0) {
+      return;
+    }
+
+    const freshDoctor = doctors.find((doctor) => doctor?._id === formData.doctorId);
+    if (!freshDoctor) {
+      return;
+    }
+
+    setSelectedDoctor(freshDoctor);
+
+    const dates = getAvailableDatesForDoctor(freshDoctor);
+    const selectedDateStillAvailable = dates.some((dateInfo) => dateInfo.date === selectedDate);
+    const nextDate = selectedDateStillAvailable
+      ? selectedDate
+      : dates[0]?.date || '';
+    const nextSlots = nextDate ? getTimeSlotsForSelectedDate(freshDoctor, nextDate) : [];
+    const selectedSlotStillAvailable = nextSlots.some((slot) => slot.displayTime === selectedSlot);
+
+    setAvailableDates(dates);
+    setSelectedDate(nextDate);
+    setAvailableSlots(nextSlots);
+
+    if (!selectedSlotStillAvailable) {
+      setSelectedSlot('');
+    }
+  }, [doctors, formData.doctorId]);
 
   // Input change handler
   const handleChange = (e) => {
