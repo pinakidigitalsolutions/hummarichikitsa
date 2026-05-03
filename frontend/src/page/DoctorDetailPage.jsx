@@ -110,55 +110,60 @@ const DoctorDetailPage = () => {
             return timeToMinutes(first.startTime) - timeToMinutes(second.startTime);
         });
 
+        const bookableSlots = sortedSlots
+            .map((slot) => {
+                const startMinutes = timeToMinutes(slot.startTime);
+                const endMinutes = timeToMinutes(slot.endTime);
+
+                if (startMinutes === null || endMinutes === null || startMinutes >= endMinutes) {
+                    return null;
+                }
+
+                return {
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    startMinutes,
+                    endMinutes,
+                    bookingEnabled: slot.bookingEnabled !== false,
+                    selectable: isSlotSelectable(slot.startTime, slot.endTime, slotDate),
+                    isCurrentSlot: isToday(new Date(slotDate)) &&
+                        isCurrentTimeInSlot(slot.startTime, slot.endTime)
+                };
+            })
+            .filter((slot) => slot && slot.bookingEnabled && slot.selectable);
+
+        if (bookableSlots.length === 0) {
+            return [];
+        }
+
         const groups = [];
         let currentGroup = null;
 
-        sortedSlots.forEach((slot) => {
-            const startMinutes = timeToMinutes(slot.startTime);
-            const endMinutes = timeToMinutes(slot.endTime);
-
-            if (startMinutes === null || endMinutes === null || startMinutes >= endMinutes) {
-                return;
-            }
-
-            const bookingEnabled = slot.bookingEnabled !== false;
-            const maxAppointments = Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
-                ? slot.maxAppointments
-                : null;
-            const selectable = isSlotSelectable(slot.startTime, slot.endTime, slotDate);
-            const isCurrentSlot = isToday(new Date(slotDate)) &&
-                isCurrentTimeInSlot(slot.startTime, slot.endTime);
-
+        bookableSlots.forEach((slot) => {
             if (!currentGroup) {
                 currentGroup = {
                     startTime: slot.startTime,
                     endTime: slot.endTime,
-                    bookingEnabled,
-                    maxAppointments,
-                    selectable,
-                    isCurrentSlot
+                    selectable: slot.selectable,
+                    isCurrentSlot: slot.isCurrentSlot
                 };
                 return;
             }
 
             const currentEndMinutes = timeToMinutes(currentGroup.endTime);
-            const canMerge = currentEndMinutes === startMinutes
-                && currentGroup.bookingEnabled === bookingEnabled
-                && currentGroup.maxAppointments === maxAppointments;
+            const canMerge = currentEndMinutes === slot.startMinutes;
 
             if (canMerge) {
                 currentGroup.endTime = slot.endTime;
-                currentGroup.selectable = currentGroup.selectable || selectable;
-                currentGroup.isCurrentSlot = currentGroup.isCurrentSlot || isCurrentSlot;
+                currentGroup.selectable = currentGroup.selectable || slot.selectable;
+                currentGroup.isCurrentSlot = currentGroup.isCurrentSlot || slot.isCurrentSlot;
             } else {
                 groups.push(currentGroup);
                 currentGroup = {
                     startTime: slot.startTime,
                     endTime: slot.endTime,
-                    bookingEnabled,
-                    maxAppointments,
-                    selectable,
-                    isCurrentSlot
+                    selectable: slot.selectable,
+                    isCurrentSlot: slot.isCurrentSlot
                 };
             }
         });
@@ -317,6 +322,10 @@ const DoctorDetailPage = () => {
             return;
         }
 
+        console.log("=== DOCTOR DETAIL BOOKING SUBMIT ===");
+        console.log("Selected slot label:", selectedSlot);
+        console.log("Available slots:", availableSlots);
+
         if (!selectedSlot) {
             toast.error('Please select a time slot');
             return;
@@ -346,6 +355,8 @@ const DoctorDetailPage = () => {
 
         // Find the selected slot object
         const selectedSlotObj = availableSlots.find(slot => slot.displayTime === selectedSlot);
+
+        console.log("Matched slot object:", selectedSlotObj);
 
         if (!selectedSlotObj) {
             toast.error('Invalid time slot selected');

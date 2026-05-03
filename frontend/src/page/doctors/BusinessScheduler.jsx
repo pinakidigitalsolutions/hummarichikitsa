@@ -43,12 +43,12 @@ class DaySchedule {
         this._id = data?._id || null;
         this.enabled = data?.enabled || false;
 
-        // Convert slots from backend format (startTime, endTime) to our Slot class
+        // Convert slots from backend format (startTime/open, endTime/close) to our Slot class
         if (data?.slots && Array.isArray(data.slots)) {
             this.slots = data.slots.map(slot =>
                 new Slot(
-                    slot.startTime,
-                    slot.endTime,
+                    slot.startTime || slot.open,
+                    slot.endTime || slot.close,
                     Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0 ? slot.maxAppointments : null,
                     slot.bookingEnabled !== false
                 )
@@ -177,7 +177,7 @@ const BusinessScheduler = () => {
     const [autoSplitEnabled, setAutoSplitEnabled] = useState(false);
 
     const AUTO_SPLIT_INTERVAL_MINUTES = 15;
-    const AUTO_SPLIT_MAX_APPOINTMENTS = 6;
+    const AUTO_SPLIT_MAX_APPOINTMENTS = 5;
 
     const forceUpdate = () => setRefresh(!refresh);
 
@@ -210,16 +210,30 @@ const BusinessScheduler = () => {
         }
 
         const intervals = [];
-        const capacity = Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
-            ? AUTO_SPLIT_MAX_APPOINTMENTS
+        const totalMaxAppointments = Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0
+            ? slot.maxAppointments
             : null;
-
+        
+        let remainingCapacity = totalMaxAppointments;
+        
         for (let current = startMinutes; current < endMinutes; current += AUTO_SPLIT_INTERVAL_MINUTES) {
+            if (remainingCapacity !== null && remainingCapacity <= 0) {
+                break;
+            }
+
             const next = Math.min(current + AUTO_SPLIT_INTERVAL_MINUTES, endMinutes);
+            
+            let intervalMaxAppointments = null;
+            if (remainingCapacity !== null) {
+                // Distribute remaining capacity across this interval, max 5 per interval
+                intervalMaxAppointments = Math.min(remainingCapacity, AUTO_SPLIT_MAX_APPOINTMENTS);
+                remainingCapacity -= intervalMaxAppointments;
+            }
+            
             intervals.push({
                 open: minutesToTime(current),
                 close: minutesToTime(next),
-                maxAppointments: capacity,
+                maxAppointments: intervalMaxAppointments,
                 bookingEnabled: slot.bookingEnabled !== false
             });
         }
@@ -261,7 +275,7 @@ const BusinessScheduler = () => {
 
             let groupStart = slot.startTime;
             let groupEnd = slot.endTime;
-            let groupCapacity = slot.maxAppointments;
+            let totalGroupCapacity = Number.isInteger(slot.maxAppointments) && slot.maxAppointments > 0 ? slot.maxAppointments : 0;
             let groupIndex = i;
 
             while (groupIndex + 1 < sortedSlots.length) {
@@ -271,7 +285,6 @@ const BusinessScheduler = () => {
                 const nextDuration = nextEnd - nextStart;
                 const isNextAutoSplit =
                     nextDuration === AUTO_SPLIT_INTERVAL_MINUTES &&
-                    nextSlot.maxAppointments === groupCapacity &&
                     nextSlot.bookingEnabled === slot.bookingEnabled;
 
                 if (!isNextAutoSplit) {
@@ -284,11 +297,12 @@ const BusinessScheduler = () => {
                 }
 
                 groupEnd = nextSlot.endTime;
+                totalGroupCapacity += Number.isInteger(nextSlot.maxAppointments) && nextSlot.maxAppointments > 0 ? nextSlot.maxAppointments : 0;
                 groupIndex += 1;
             }
 
             mergedSlots.push(
-                new Slot(groupStart, groupEnd, groupCapacity, slot.bookingEnabled)
+                new Slot(groupStart, groupEnd, totalGroupCapacity > 0 ? totalGroupCapacity : null, slot.bookingEnabled)
             );
             i = groupIndex;
         }
@@ -587,7 +601,12 @@ const BusinessScheduler = () => {
 
     const saveSchedule = async () => {
         try {
+            console.log("=== SAVE SCHEDULE CLICKED ===");
+            console.log("Current autoSplitEnabled:", autoSplitEnabled);
+            console.log("Current schedule snapshot:", schedule);
+
             if (!validateSchedule(schedule)) {
+                console.log("Validation failed; save aborted.");
                 return;
             }
 
@@ -609,11 +628,20 @@ const BusinessScheduler = () => {
                     bookingEnabled: slot.bookingEnabled !== false
                 }));
 
-                const slotsForSave = autoSplitEnabled
-                    ? baseSlots.flatMap(splitSlotIntoIntervals)
-                    : baseSlots;
+                // Always split slots into 15-min intervals internally for appointment distribution.
+                // The UI toggle only affects display; backend always receives split intervals.
+                const slotsForSave = baseSlots.flatMap(splitSlotIntoIntervals);
 
                 const hasSlots = slotsForSave.length > 0;
+                    console.log(`=== SAVE SCHEDULE DEBUG FOR ${day} ===`);
+                    console.log("Base slots (before split):", baseSlots);
+                    console.log("Slots after split:", slotsForSave);
+                    console.log(`Total slots to save: ${slotsForSave.length}`);
+                    if (slotsForSave.length > 0) {
+                        console.log("First slot:", slotsForSave[0]);
+                        console.log("Last slot:", slotsForSave[slotsForSave.length - 1]);
+                    }
+
                 const nextEnabled = dayData.enabled && hasSlots;
 
                 if (nextSchedule.days[day]) {
@@ -717,30 +745,30 @@ const BusinessScheduler = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-slate-700">
-                        Auto 15-min slots
+                        Show as 15-min slots
                     </span>
                     <button
                         type="button"
                         onClick={() => {
-                            if (autoSplitEnabled) {
-                                const nextSchedule = schedule.clone();
-                                restoreManualSlotCapacities(nextSchedule);
-                                setSchedule(nextSchedule);
-                                setAutoSplitEnabled(false);
+                                if (autoSplitEnabled) {
+                                    const nextSchedule = schedule.clone();
+                                    restoreManualSlotCapacities(nextSchedule);
+                                    setSchedule(nextSchedule);
+                                    setAutoSplitEnabled(false);
+                                    forceUpdate();
+                                    return;
+                                }
+
+                                const mergedSchedule = schedule.clone();
+                                Object.values(mergedSchedule.days).forEach((dayObj) => {
+                                    dayObj.slots = mergeAutoSplitSlots(dayObj.slots);
+                                });
+                                applyAutoSplitCapacities(mergedSchedule);
+
+                                setSchedule(mergedSchedule);
+                                setAutoSplitEnabled(true);
                                 forceUpdate();
-                                return;
-                            }
-
-                            const mergedSchedule = schedule.clone();
-                            Object.values(mergedSchedule.days).forEach((dayObj) => {
-                                dayObj.slots = mergeAutoSplitSlots(dayObj.slots);
-                            });
-                            applyAutoSplitCapacities(mergedSchedule);
-
-                            setSchedule(mergedSchedule);
-                            setAutoSplitEnabled(true);
-                            forceUpdate();
-                        }}
+                            }}
                         role="switch"
                         aria-checked={autoSplitEnabled}
                         className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${autoSplitEnabled
@@ -759,7 +787,7 @@ const BusinessScheduler = () => {
             </div>
             {autoSplitEnabled && (
                 <p className="mt-3 text-xs text-slate-500">
-                    Each time range will be split into 15-minute slots internally when saving.
+                    Display preference only. Slots are always split into 15-minute intervals internally for automatic appointment distribution.
                 </p>
             )}
         </div>
@@ -834,9 +862,7 @@ const BusinessScheduler = () => {
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
                                             <div className="w-full sm:w-auto flex-1">
                                                 <label className="block text-xs sm:text-sm text-slate-600 mb-1">
-                                                    {autoSplitEnabled 
-                                                        ? `Max 5 appointments per 15-min interval` 
-                                                        : "Max appointments (leave empty for unlimited)"}
+                                                    Max appointments (5 per 15-min interval)
                                                 </label>
                                                 <input
                                                     type="number"
@@ -845,9 +871,8 @@ const BusinessScheduler = () => {
                                                             ? slot.maxAppointments
                                                             : ''}
                                                     onChange={(e) => updateSlotCapacity(dayObj.name, index, e.target.value)}
-                                                    readOnly={autoSplitEnabled}
                                                     placeholder="Unlimited"
-                                                    className={`w-full border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${autoSplitEnabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
+                                                    className={`w-full border border-slate-300 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base bg-white`}
                                                 />
                                             </div>
 
@@ -883,6 +908,7 @@ const BusinessScheduler = () => {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-200">
                 <button
+                    type="button"
                     onClick={saveSchedule}
                     disabled={loading}
                     className={`flex-1 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-300 ${saved

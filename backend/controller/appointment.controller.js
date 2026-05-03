@@ -45,6 +45,15 @@ export const createAppointment = async (req, res) => {
         return hours * 60 + minutes;
     };
 
+    const minutesToTime = (totalMinutes) => {
+        if (!Number.isInteger(totalMinutes) || totalMinutes < 0) return null;
+
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    };
+
     const parseSlotTimes = (slotString) => {
         if (!slotString || !slotString.includes(' - ')) return { start: null, end: null };
         const parts = slotString.split(' - ');
@@ -84,9 +93,23 @@ export const createAppointment = async (req, res) => {
         return `${start} - ${end}`;
     };
 
+    const AUTO_SPLIT_INTERVAL_MINUTES = 15;
+    const AUTO_SPLIT_MAX_APPOINTMENTS = 5;
+
     const getSlotCapacity = (slotData) => {
         if (Number.isInteger(slotData?.maxAppointments) && slotData.maxAppointments > 0) {
             return slotData.maxAppointments;
+        }
+
+        const slotStart = timeToMinutes(slotData?.startTime);
+        const slotEnd = timeToMinutes(slotData?.endTime);
+
+        if (
+            slotStart !== null &&
+            slotEnd !== null &&
+            slotEnd - slotStart === AUTO_SPLIT_INTERVAL_MINUTES
+        ) {
+            return AUTO_SPLIT_MAX_APPOINTMENTS;
         }
 
         return null;
@@ -143,6 +166,94 @@ export const createAppointment = async (req, res) => {
                 candidate.bookingEnabled !== false &&
                 hasSlotCapacity(candidate, appointments)
             ));
+    };
+
+    const findAvailableAutoSplitSlotFrom = (slots, requestedSlot, appointments) => {
+        const requestedStart = timeToMinutes(requestedSlot?.startTime);
+        const requestedEnd = timeToMinutes(requestedSlot?.endTime);
+        const requestedDuration = requestedEnd - requestedStart;
+        const requestedCapacity = getSlotCapacity(requestedSlot);
+
+        if (
+            requestedStart === null ||
+            requestedEnd === null ||
+            requestedDuration <= 0 ||
+            requestedDuration > 15 ||
+            requestedCapacity === null
+        ) {
+            return null;
+        }
+
+        const sortedSlots = [...slots].sort((firstSlot, secondSlot) => {
+            return timeToMinutes(firstSlot.startTime) - timeToMinutes(secondSlot.startTime);
+        });
+
+        let expectedStart = requestedStart;
+
+        for (const candidate of sortedSlots) {
+            const candidateStart = timeToMinutes(candidate.startTime);
+            const candidateEnd = timeToMinutes(candidate.endTime);
+            const candidateDuration = candidateEnd - candidateStart;
+
+            if (candidateStart === null || candidateEnd === null || candidateStart < requestedStart) {
+                continue;
+            }
+
+            if (
+                candidateDuration !== requestedDuration ||
+                getSlotCapacity(candidate) !== requestedCapacity
+            ) {
+                break;
+            }
+
+            if (candidateStart !== expectedStart) {
+                break;
+            }
+
+            if (candidate.bookingEnabled !== false && hasSlotCapacity(candidate, appointments)) {
+                return candidate;
+            }
+
+            expectedStart = candidateEnd;
+        }
+
+        return null;
+    };
+
+    const resolveBookingInterval = (slotData, appointments) => {
+        const slotStart = timeToMinutes(slotData?.startTime);
+        const slotEnd = timeToMinutes(slotData?.endTime);
+
+        if (slotStart === null || slotEnd === null || slotEnd <= slotStart) {
+            return slotData;
+        }
+
+        const duration = slotEnd - slotStart;
+        if (duration <= AUTO_SPLIT_INTERVAL_MINUTES) {
+            return slotData;
+        }
+
+        const bookedCount = appointments.filter((appointment) => appointmentOverlapsSlot(appointment, slotData)).length;
+        const totalCapacity = getSlotCapacity(slotData);
+
+        if (totalCapacity !== null && bookedCount >= totalCapacity) {
+            return null;
+        }
+
+        const intervalIndex = Math.floor(bookedCount / AUTO_SPLIT_MAX_APPOINTMENTS);
+        const assignedStart = slotStart + (intervalIndex * AUTO_SPLIT_INTERVAL_MINUTES);
+
+        if (assignedStart >= slotEnd) {
+            return null;
+        }
+
+        const assignedEnd = Math.min(assignedStart + AUTO_SPLIT_INTERVAL_MINUTES, slotEnd);
+
+        return {
+            ...slotData,
+            startTime: minutesToTime(assignedStart),
+            endTime: minutesToTime(assignedEnd)
+        };
     };
 
 
@@ -245,7 +356,16 @@ export const createAppointment = async (req, res) => {
             ));
 
             if (exactMatch) {
-                selectedSlot = exactMatch;
+                selectedSlot = hasSlotCapacity(exactMatch, existingAppointments)
+                    ? exactMatch
+                    : findAvailableAutoSplitSlotFrom(scheduleSlots, exactMatch, existingAppointments);
+
+                if (!selectedSlot) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "This time range is already fully booked."
+                    });
+                }
             } else {
                 const requestedStart = timeToMinutes(startTime);
                 const requestedEnd = timeToMinutes(endTime);
@@ -284,8 +404,30 @@ export const createAppointment = async (req, res) => {
             });
 
             if (matchedSlot) {
-                selectedSlot = matchedSlot;
+                selectedSlot = hasSlotCapacity(matchedSlot, existingAppointments)
+                    ? matchedSlot
+                    : findAvailableAutoSplitSlotFrom(scheduleSlots, matchedSlot, existingAppointments);
+
+                if (!selectedSlot) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "This time range is already fully booked."
+                    });
+                }
             }
+        }
+
+        if (selectedSlot) {
+            const bookingInterval = resolveBookingInterval(selectedSlot, existingAppointments);
+
+            if (!bookingInterval) {
+                return res.status(400).json({
+                    success: false,
+                    message: "This time range is already fully booked."
+                });
+            }
+
+            selectedSlot = bookingInterval;
         }
 
         if (selectedSlot) {
