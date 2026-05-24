@@ -213,11 +213,12 @@ const getUser = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const use = req.user;
-        const { user_first_name, user_last_name, email } = req.body;
+        const { user_first_name, user_last_name, email, sex } = req.body;
         const user = await User.findByIdAndUpdate(use._id, {
             user_first_name,
             user_last_name,
-            email
+            email,
+            sex
         },
             { new: true }
         )

@@ -13,6 +13,11 @@ const AppointmentSchema = new mongoose.Schema({
   dob: {
     type: String,
   },
+  sex: {
+    type: String,
+    enum: ['male', 'female', 'other'],
+    default: null
+  },
   patientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

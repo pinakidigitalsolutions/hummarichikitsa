@@ -44,6 +44,12 @@ const userSchema = new mongoose.Schema({
         ref: 'Doctor',
         default: null
     }
+    ,
+    sex: {
+        type: String,
+        enum: ['male', 'female', 'other'],
+        default: 'male'
+    }
 }, {
     timestamps: true,
     versionKey: false

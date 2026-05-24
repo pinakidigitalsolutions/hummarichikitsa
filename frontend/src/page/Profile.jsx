@@ -8,6 +8,7 @@ const UserProfilePopup = () => {
     name: 'Rahul Sharma',
     mobile: '+91 98765 43210',
     email: 'rahul.sharma@example.com',
+    sex: 'male',
     appointments: [
       { id: 1, doctor: 'Dr. Amit Patel', date: '15 Sep 2023', time: '10:30 AM' },
       { id: 2, doctor: 'Dr. Priya Singh', date: '20 Sep 2023', time: '2:15 PM' }
@@ -17,6 +18,7 @@ const UserProfilePopup = () => {
     name: '',
     mobile: '',
     email: ''
+    ,sex: 'male'
   });
   const popupRef = useRef(null);
   const modalRef = useRef(null);
@@ -45,6 +47,7 @@ const UserProfilePopup = () => {
         name: userData.name,
         mobile: userData.mobile,
         email: userData.email
+        ,sex: userData.sex || 'male'
       });
     }
   }, [isEditModalOpen, userData]);
@@ -55,7 +58,8 @@ const UserProfilePopup = () => {
       ...userData,
       name: editForm.name,
       mobile: editForm.mobile,
-      email: editForm.email
+      email: editForm.email,
+      sex: editForm.sex
     });
     setIsEditModalOpen(false);
   };
@@ -106,6 +110,7 @@ const UserProfilePopup = () => {
                   <h4 className="font-medium text-gray-900">{userData.name}</h4>
                   <p className="text-sm text-gray-600">{userData.mobile}</p>
                   <p className="text-sm text-gray-600">{userData.email}</p>
+                  <p className="text-sm text-gray-600 capitalize">{userData.sex || 'Not specified'}</p>
                 </div>
               </div>
             </div>
@@ -224,6 +229,20 @@ const UserProfilePopup = () => {
                       required
                     />
                   </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sex</label>
+                  <select
+                    name="sex"
+                    value={editForm.sex}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
                 </div>
               </div>
 

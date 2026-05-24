@@ -246,6 +246,7 @@ Thank you – Hummari Chikitsa
     patient: '',
     mobile: '',
     dob: '',
+    sex: '',
     doctorId: '',
     booking_amount: '',
     paymentStatus: 'Cash',
@@ -525,6 +526,7 @@ useEffect(() => {
     if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
     if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Invalid mobile number';
     if (!formData.dob) newErrors.dob = 'Age is required';
+    if (!formData.sex) newErrors.sex = 'Please select sex';
     if (formData.dob && (!Number.isInteger(age) || age <= 0 || age > MAX_AGE)) {
       newErrors.dob = `Age must be between 1 and ${MAX_AGE}`;
     }
@@ -577,7 +579,8 @@ useEffect(() => {
           setFormData({
             patient: '',
             mobile: '',
-            dob: '',
+              dob: '',
+              sex: '',
             doctorId: decoded.id,
             paymentStatus: 'Cash',
             booking_amount: doctor?.consultationFee || '',
@@ -590,6 +593,7 @@ useEffect(() => {
             patient: '',
             mobile: '',
             dob: '',
+            sex: '',
             doctorId: '',
             booking_amount: '',
             paymentStatus: 'Cash',
@@ -830,6 +834,22 @@ useEffect(() => {
                           }}
                         />
                         {errors.dob && <p className="mt-1 text-xs text-red-600">{errors.dob}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sex *</label>
+                        <select
+                          name="sex"
+                          value={formData.sex}
+                          onChange={handleChange}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 text-sm ${errors.sex ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
+                        >
+                          <option value="">Select</option>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                          <option value="other">Other</option>
+                        </select>
+                        {errors.sex && <p className="mt-1 text-xs text-red-600">{errors.sex}</p>}
                       </div>
 
                       <div className="flex justify-end pt-2">

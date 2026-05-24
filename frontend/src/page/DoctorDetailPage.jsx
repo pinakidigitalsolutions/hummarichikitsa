@@ -209,6 +209,7 @@ const DoctorDetailPage = () => {
     const [patient, setPatient] = useState('');
     const [mobile, setMobile] = useState('');
     const [dob, setDob] = useState('');
+    const [sex, setSex] = useState(currentUser?.sex || '');
     const [isLoading, setIsLoading] = useState(!hospitals || hospitals.length === 0 || !doctors || doctors.length === 0);
     const [Loading, setLoading] = useState(false);
     const [login, setlogin] = useState(false);
@@ -369,6 +370,7 @@ const DoctorDetailPage = () => {
             patient: patient.trim(),
             mobile,
             dob,
+            sex: sex || currentUser?.sex || '',
             patientId: currentUser?._id,
             doctorId: doctor?._id,
             hospitalId: hospital?._id,

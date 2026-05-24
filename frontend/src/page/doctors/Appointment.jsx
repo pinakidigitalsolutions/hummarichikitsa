@@ -497,6 +497,10 @@ Thank you – Hummari Chikitsa
                                         <p className="text-xs text-gray-500 uppercase tracking-wider">Contact Number</p>
                                         <p className="font-medium">{appointment?.mobile}</p>
                                     </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider">Sex</p>
+                                        <p className="font-medium">{appointment?.sex}</p>
+                                    </div>
                                 </div>
                             </motion.div>
 

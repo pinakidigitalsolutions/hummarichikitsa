@@ -193,6 +193,15 @@ const AppointmentDetailsPage = () => {
                                             <p className="font-medium text-gray-800">{appointment?.dob || 'Not specified'}</p>
                                         </div>
                                     </div>
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-1.5">
+                                            <div className="h-2.5 w-2.5 rounded-full bg-blue-600"></div>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-500">Sex</p>
+                                            <p className="font-medium text-gray-800 capitalize">{(appointment?.sex || appointment?.patientId?.sex) || 'Not specified'}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
