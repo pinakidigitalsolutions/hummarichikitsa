@@ -364,6 +364,7 @@ import { getAllHospital } from '../Redux/hospitalSlice';
 import avatar from '../../src/assets/logo-def.png';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout/Layout';
+import appointmentLabel from '../Helper/appointmentLabel';
 import socket from '../Helper/socket';
 import SkeletonCard from '../components/SkeletonCard';
 
@@ -377,6 +378,9 @@ function Appointment() {
     const [activeTab, setActiveTab] = useState('active');
     const [doctors, setdoctors] = useState([])
     const [appointments, setappointments] = useState([])
+
+    const { role, data: authData } = useSelector((state) => state.LoginAuth || {});
+    const currentRole = authData?.user?.role || role || '';
 
     const mergeDoctorUpdate = (prevDoctors, updatedDoctor) => {
         const safeDoctors = Array.isArray(prevDoctors) ? prevDoctors : [];
@@ -565,7 +569,7 @@ function Appointment() {
                         className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors duration-150"
                     >
                         <PlusCircle className="w-5 h-5 mr-2" />
-                        Book New Appointment
+                        {appointmentLabel(currentRole)}
                     </Link>
                 </div>
 
@@ -584,13 +588,13 @@ function Appointment() {
                         </p>
                         <div className="mt-6">
                             {activeTab === 'active' && (
-                                <Link
-                                    to="/hospitals"
-                                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    <PlusCircle className="-ml-1 mr-2 h-5 w-5" />
-                                    Book Appointment
-                                </Link>
+                                    <Link
+                                        to="/hospitals"
+                                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        <PlusCircle className="-ml-1 mr-2 h-5 w-5" />
+                                        {appointmentLabel(currentRole)}
+                                    </Link>
                             )}
                         </div>
                     </div>

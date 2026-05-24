@@ -457,7 +457,7 @@ const MyHospital = () => {
                                                                     </td>
                                                                     <td className="p-2">
                                                                         <div className="flex justify-end gap-1">
-                                                                            <Link to={`/doctor/${doc._id}`}>
+                                                                            <Link to={`/admin/doctor/${doc._id}`}>
                                                                                 <button
                                                                                     className="text-xs px-2 py-1 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100"
                                                                                 >

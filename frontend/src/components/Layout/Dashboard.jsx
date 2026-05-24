@@ -5,6 +5,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Logout } from '../../Redux/doctorSlice';
 import avatar from '../../../src/assets/logo-def.png';
 import { AuthMe } from '../../Redux/AuthLoginSlice';
+import appointmentLabel from '../../Helper/appointmentLabel';
 
 const Dashboard = ({ children }) => {
   const { isLoggedIn, role, data } = useSelector((state) => state?.LoginAuth || {});
@@ -154,7 +155,7 @@ const Dashboard = ({ children }) => {
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <Clock className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
-                      <span className="font-medium">Book Appointment</span>
+                      <span className="font-medium">{appointmentLabel(currentRole)}</span>
                     </NavLink>
                   </li>
                 )}

@@ -39,7 +39,7 @@ router.post('/login', Login);
 router.post("/", authenticate, authorize(["admin",'hospital']), upload.single('photo'), createDoctor);
 router.get("/", getDoctors);
 router.put("/change/password", authenticate, ChangePassword);
-// router.get("/:id", authenticate, authorize(["admin",'hospital','doctor','staff']), getDoctorById);
+router.get("/:id", authenticate, authorize(["admin",'hospital','doctor','staff']), getDoctorById);
 router.get("/:hospitalId/hospital",getDoctorByHospitalId);
 router.put("/:id", authenticate, authorize(["admin",'hospital','doctor']), upload.single('photo'), updateDoctor);
 router.delete("/:id", authenticate, authorize(["admin",'hospital']), deleteDoctor);

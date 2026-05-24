@@ -590,7 +590,7 @@ const HospitalDetails = () => {
                                                                                 </td>
                                                                                 <td className="p-2">
                                                                                     <div className="flex justify-end gap-1">
-                                                                                        <Link to={`/doctor/${doc._id}`}>
+                                                                                        <Link to={`/admin/doctor/${doc._id}`}>
                                                                                             <motion.button
                                                                                                 whileHover={{ scale: 1.05 }}
                                                                                                 whileTap={{ scale: 0.95 }}

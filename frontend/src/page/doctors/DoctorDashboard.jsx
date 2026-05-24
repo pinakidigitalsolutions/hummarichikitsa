@@ -538,7 +538,7 @@
 //                                 to="/book/appointment"
 //                                 className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-all text-sm sm:text-base text-center"
 //                             >
-//                                 Book Appointment
+//                                 {appointmentLabel(currentUser?.role)}
 //                             </Link>
 //                         </div>
 //                     </div>
@@ -789,6 +789,7 @@ import axiosInstance from '../../Helper/axiosInstance';
 import socket from '../../Helper/socket';
 import { AuthMe } from '../../Redux/AuthLoginSlice';
 import { motion } from 'framer-motion';
+import appointmentLabel from '../../Helper/appointmentLabel';
 
 const DoctorDashboard = () => {
     const colors = { primary: '#0d9488' };
@@ -1507,7 +1508,7 @@ const DoctorDashboard = () => {
                                     className="inline-flex items-center justify-center px-4 sm:px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl shadow-sm transition-all text-sm sm:text-base"
                                 >
                                     <Plus className="h-4 w-4 mr-2" />
-                                    Book Appointment
+                                    {appointmentLabel(currentUser?.role)}
                                 </Link>
                             </div>
                         </div>

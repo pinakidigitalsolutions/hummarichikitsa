@@ -10,6 +10,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 import hospital_img from '../../src/assets/hospital_image.png';
 import avatar from '../../src/assets/logo-def.png';
 import socket from '../Helper/socket';
+import appointmentLabel from '../Helper/appointmentLabel';
 import SkeletonCard from '../components/SkeletonCard';
 const DoctorListPage = () => {
   const navigate = useNavigate();
@@ -34,6 +35,9 @@ const DoctorListPage = () => {
   const specialties = Array.from(
     new Set(hospitalDoctors.map(doctor => doctor.specialty))
   ).sort();
+
+  const { role, data: authData } = useSelector((state) => state.LoginAuth || {});
+  const currentRole = authData?.user?.role || role || '';
 
   // Filter doctors based on selected specialty
   const filteredDoctors = selectedSpecialty
@@ -321,7 +325,7 @@ const DoctorListPage = () => {
                             ? 'bg-blue-600 text-white hover:bg-blue-700'
                             : 'bg-gray-400 text-white cursor-not-allowed'}`}
                       >
-                        {doctor.status ? 'Book Appointment' : 'Unavailable'}
+                        {doctor.status ? appointmentLabel(currentRole) : 'Unavailable'}
                       </button>
 
                       {/* <button

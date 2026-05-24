@@ -120,6 +120,7 @@ function App() {
             <Route path="/doctor/create/:hospitalId" element={<DoctorForm />} />
 
             <Route path="/hospital" element={<MyHospital />} />
+            <Route path="/hospital/update/:id" element={<HospitalForm />} />
             <Route path="/hospital/:id" element={<HospitalDetails />} />
 
             <Route path="/admin/doctor/:doctorId" element={<DoctorDetailsPage />} />

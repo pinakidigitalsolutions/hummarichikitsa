@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios'; // Assuming axios is installed and configured
+import axios from 'axios'; // kept for file uploads if needed
+import axiosInstance from '../../Helper/axiosInstance';
 import Dashboard from '../../components/Layout/Dashboard';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { AuthMe } from '../../Redux/AuthLoginSlice';
 import { createHospital } from '../../Redux/hospitalSlice';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 // Default App component to make this runnable in a preview
 export default function App() {
@@ -16,7 +19,11 @@ export default function App() {
 }
 const HospitalForm = () => {
   const navigate = useNavigate()
+  const { role, data } = useSelector((state) => state?.LoginAuth || {});
+  const currentRole = role || data?.user?.role || localStorage.getItem('role') || '';
+  const { id } = useParams();
   const [previewImage, setImagePreview] = useState("");
+  const [originalData, setOriginalData] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -54,7 +61,50 @@ const HospitalForm = () => {
   ];
 
   useEffect(() => {
-    // Clear success message after 5 seconds
+    // If an id is present, we're editing an existing hospital — fetch data on mount or when id changes
+    const fetchHospital = async () => {
+      if (!id) return;
+      try {
+        const res = await axiosInstance.get(`/hospital/${id}`);
+        const data = res.data;
+        setFormData(prev => ({
+          ...prev,
+          name: data.name || '',
+          address: data.address || '',
+          city: data.city || '',
+          state: data.state || '',
+          pincode: data.pincode || '',
+          phone: data.phone || '',
+          email: data.email || '',
+          website: data.website || '',
+          rating: data.rating ?? 2.5,
+          specialties: Array.isArray(data.specialties) ? data.specialties : [],
+          facilities: Array.isArray(data.facilities) ? data.facilities : [],
+        }));
+        setOriginalData({
+          name: data.name || '',
+          address: data.address || '',
+          city: data.city || '',
+          state: data.state || '',
+          pincode: data.pincode || '',
+          phone: data.phone || '',
+          email: data.email || '',
+          website: data.website || '',
+          rating: data.rating ?? 2.5,
+          specialties: Array.isArray(data.specialties) ? data.specialties : [],
+          facilities: Array.isArray(data.facilities) ? data.facilities : [],
+          image: data.image || ''
+        });
+        if (data.image) setImagePreview(data.image);
+      } catch (err) {
+        console.error('Failed to load hospital data', err);
+        toast.error('Unable to load hospital details for editing');
+      }
+    }
+    fetchHospital();
+  }, [id]);
+
+  useEffect(() => {
     if (submitSuccess) {
       const timer = setTimeout(() => {
         setSubmitSuccess(false);
@@ -190,8 +240,10 @@ const HospitalForm = () => {
     setIsSubmitting(true);
     setSubmitSuccess(false); // Reset success status
     setErrors({}); // Clear previous errors
-    if (formData.password == null) {
+    // Require password only when creating a new hospital
+    if (!id && (!formData.password || formData.password.trim() === '')) {
       toast.error('password is required')
+      setIsSubmitting(false);
       return
     }
     // Simulate API call
@@ -218,47 +270,110 @@ const HospitalForm = () => {
 
     const hospitalData = new FormData();
 
-    // Append simple fields
-    hospitalData.append("name", formData.name || "");
-    hospitalData.append("address", formData.address || "");
-    hospitalData.append("city", formData.city || "");
-    hospitalData.append("state", formData.state || "");
-    hospitalData.append("pincode", formData.pincode || "");
-    hospitalData.append("phone", formData.phone || "");
-    hospitalData.append("email", formData.email || "");
-    hospitalData.append("password", formData.password || "");
-    hospitalData.append("website", formData.website || "");
-    hospitalData.append("rating", formData.rating || "");
-
-    // Append image (if exists)
-    if (formData.image) {
-      hospitalData.append("image", formData.image);
+    // If editing, only append fields that changed compared to originalData
+    const appendIfChanged = (key, value) => {
+      if (!originalData) {
+        // no original, probably create mode -> append everything
+        hospitalData.append(key, value);
+        return;
+      }
+      const orig = originalData[key];
+      // For arrays, compare JSON
+      if (Array.isArray(value) || Array.isArray(orig)) {
+        const a = JSON.stringify(orig || []);
+        const b = JSON.stringify(value || []);
+        if (a !== b) {
+          if (Array.isArray(value)) {
+            value.forEach((v) => hospitalData.append(`${key}[]`, v));
+          } else {
+            hospitalData.append(key, value);
+          }
+        }
+        return;
+      }
+      if ((orig === undefined || orig === null) && (value !== undefined && value !== null && value !== '')) {
+        hospitalData.append(key, value);
+        return;
+      }
+      if (String(orig) !== String(value) && value !== undefined && value !== null && value !== '') {
+        hospitalData.append(key, value);
+      }
     }
 
-    // Append arrays (specialties and facilities)
-    if (Array.isArray(formData.specialties)) {
-      formData.specialties.forEach((specialty) => {
-        hospitalData.append("specialties[]", specialty);
-      });
+    // Append basic fields
+    if (id) {
+      appendIfChanged('name', formData.name);
+      appendIfChanged('address', formData.address);
+      appendIfChanged('city', formData.city);
+      appendIfChanged('state', formData.state);
+      appendIfChanged('pincode', formData.pincode);
+      appendIfChanged('phone', formData.phone);
+      appendIfChanged('email', formData.email);
+      appendIfChanged('website', formData.website);
+      appendIfChanged('rating', formData.rating);
+      // arrays
+      appendIfChanged('specialties', formData.specialties);
+      appendIfChanged('facilities', formData.facilities);
+      // image: only append if user selected a new File
+      if (formData.image && formData.image instanceof File) {
+        hospitalData.append('image', formData.image);
+      }
+      // password intentionally not appended on update unless provided
+      if (formData.password && formData.password.trim() !== '') {
+        hospitalData.append('password', formData.password);
+      }
+    } else {
+      // create mode: append everything
+      hospitalData.append('name', formData.name || '');
+      hospitalData.append('address', formData.address || '');
+      hospitalData.append('city', formData.city || '');
+      hospitalData.append('state', formData.state || '');
+      hospitalData.append('pincode', formData.pincode || '');
+      hospitalData.append('phone', formData.phone || '');
+      hospitalData.append('email', formData.email || '');
+      hospitalData.append('password', formData.password || '');
+      hospitalData.append('website', formData.website || '');
+      hospitalData.append('rating', formData.rating || '');
+      if (formData.image) hospitalData.append('image', formData.image);
+      if (Array.isArray(formData.specialties)) formData.specialties.forEach(s => hospitalData.append('specialties[]', s));
+      if (Array.isArray(formData.facilities)) formData.facilities.forEach(f => hospitalData.append('facilities[]', f));
     }
 
-    if (Array.isArray(formData.facilities)) {
-      formData.facilities.forEach((facility) => {
-        hospitalData.append("facilities[]", facility);
-      });
+    try {
+      if (id) {
+        // Update existing hospital
+        const response = await axiosInstance.put(`/hospital/${id}`, hospitalData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (response.data && response.data.success) {
+          toast.success('Hospital updated successfully');
+          try {
+            // Refresh auth/user data so sidebar updates immediately
+            await dispatch(AuthMe()).unwrap();
+          } catch (err) {
+            console.error('Failed to refresh auth data', err);
+          }
+          if (currentRole === 'admin') {
+            navigate(`/hospital/${id}`);
+          } else {
+            navigate('/hospital');
+          }
+        } else {
+          toast.error(response.data?.message || 'Update failed');
+        }
+      } else {
+        const res = await dispatch(createHospital(hospitalData))
+        if(res.payload.success){
+          setIsSubmitting(false);
+          navigate('/hospital/list')
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Append currentSpecialty (if needed)
-    if (formData.currentSpecialty) {
-      hospitalData.append("currentSpecialty", formData.currentSpecialty);
-    }
-
-    const res = await dispatch(createHospital(hospitalData))
-       if(res.payload.success){
-         setIsSubmitting(false);
-         navigate('/hospital/list')
-         
-       }
     // try {
     //   // Replace with your actual API endpoint
     //   // const response = await axios.post('/api/hospitals', formData);
@@ -622,7 +737,7 @@ const HospitalForm = () => {
                     ) : (
                       <>
                         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                        Register Hospital
+                        {id ? 'Update Hospital' : 'Register Hospital'}
                       </>
                     )}
                   </button>
@@ -632,7 +747,7 @@ const HospitalForm = () => {
           </div>
         </div>
         {/* Simple CSS for fadeIn animation */}
-        <style jsx global>{`
+        <style>{`
         .animate-fadeIn {
           animation: fadeIn 0.5s ease-in-out;
         }
