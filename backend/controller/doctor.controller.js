@@ -1344,7 +1344,7 @@ export const DeactivateAllDoctor = async (req, res) => {
 // Get doctor's weekly schedule
 export const getDoctorSchedule = async (req, res) => {
   try {
-    const  doctorId  = req.user;
+    const doctorId = req.user?.id || req.user?._id;
       
     const doctor = await Doctor.findById(doctorId).select('weeklySchedule name');
     if (!doctor) {

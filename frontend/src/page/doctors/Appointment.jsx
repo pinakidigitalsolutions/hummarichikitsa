@@ -29,6 +29,11 @@ const AppointmentDetails = () => {
         return status.charAt(0).toUpperCase() + status.slice(1);
     };
 
+    const formatSexText = (sex) => {
+        if (!sex) return '';
+        return sex.charAt(0).toUpperCase() + sex.slice(1);
+    };
+
     const getFormattedMessage = (data) => {
         const timeSlot =
             data?.slot ||
@@ -499,7 +504,7 @@ Thank you – Hummari Chikitsa
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-500 uppercase tracking-wider">Sex</p>
-                                        <p className="font-medium">{appointment?.sex}</p>
+                                        <p className="font-medium">{formatSexText(appointment?.sex)}</p>
                                     </div>
                                 </div>
                             </motion.div>

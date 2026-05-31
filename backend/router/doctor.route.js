@@ -39,6 +39,10 @@ router.post('/login', Login);
 router.post("/", authenticate, authorize(["admin",'hospital']), upload.single('photo'), createDoctor);
 router.get("/", getDoctors);
 router.put("/change/password", authenticate, ChangePassword);
+router.patch("/DeactivateAllDoctor", authenticate , DeactivateAllDoctor);
+router.post("/updateDoctorSchedule",authenticate,updateDoctorSchedule);
+router.get('/getDoctorSchedule',authenticate ,getDoctorSchedule);
+router.post("/changeStatus",authenticate,changeStatus)
 router.get("/:id", authenticate, authorize(["admin",'hospital','doctor','staff']), getDoctorById);
 router.get("/:hospitalId/hospital",getDoctorByHospitalId);
 router.put("/:id", authenticate, authorize(["admin",'hospital','doctor']), upload.single('photo'), updateDoctor);
@@ -53,10 +57,6 @@ router.post("/active", authenticate, authorize(["doctor"]), ActiveDoctors);
 // router.delete("/:id/slots/clear", authenticate, authorize(["admin",'hospital','doctor']), clearDoctorSlotsByDate);
 // router.get("/:id/slots/:date", authenticate, authorize(["admin",'hospital','doctor','staff']), getDoctorSlotsByDate);
 // router.get("/:id/slots", authenticate, authorize(["admin",'hospital','doctor','staff']), getAllDoctorSlots);
-router.patch("/DeactivateAllDoctor", authenticate , DeactivateAllDoctor);
-router.post("/updateDoctorSchedule",authenticate,updateDoctorSchedule);
-router.get('/getDoctorSchedule',authenticate ,getDoctorSchedule);
-router.post("/changeStatus",authenticate,changeStatus)
 // Add/update specific day schedule
 // router.put("/:doctorId/schedule/:day", addDaySchedule);
 

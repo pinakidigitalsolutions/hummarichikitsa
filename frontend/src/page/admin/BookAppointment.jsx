@@ -712,7 +712,7 @@ useEffect(() => {
                   
                   if (section === 'appointment' && activeSection !== 'appointment') {
                     // Patient tab must be complete
-                    isDisabled = !formData.patient.trim() || !formData.mobile.trim() || !/^\d{10}$/.test(formData.mobile) || !formData.dob;
+                    isDisabled = !formData.patient.trim() || !formData.mobile.trim() || !/^\d{10}$/.test(formData.mobile) || !formData.dob || !formData.sex;
                   }
                   
                   if (section === 'payment' && activeSection !== 'payment') {
@@ -862,6 +862,7 @@ useEffect(() => {
                             if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
                             if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Invalid mobile number';
                             if (!formData.dob) newErrors.dob = 'Age is required';
+                            if (!formData.sex) newErrors.sex = 'Please select sex';
                             if (formData.dob && (!Number.isInteger(age) || age <= 0 || age > MAX_AGE)) {
                               newErrors.dob = `Age must be between 1 and ${MAX_AGE}`;
                             }
