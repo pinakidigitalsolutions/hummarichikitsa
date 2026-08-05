@@ -403,7 +403,7 @@ Booking Amount: ₹${res?.payload.savedAppointment.booking_amount}
 Payment: ${res?.payload.savedAppointment.paymentStatus}
 
 Track or manage your booking:
-https://hummarichikitsa.vercel.app
+https://hummarichikitsa.pinakito.com
 
 Thank you – Hummari Chikitsa
 `.trim();

@@ -196,7 +196,7 @@ Booking Amount: ₹${data.booking_amount}
 Payment: ${data.paymentStatus}
 
 Track or manage your booking:
-https://hummarichikitsa.vercel.app
+https://hummarichikitsa.pinakito.com
 
 Thank you – Hummari Chikitsa
     `.trim();

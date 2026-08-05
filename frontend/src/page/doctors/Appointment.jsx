@@ -54,7 +54,7 @@ Booking Amount: ₹${data.booking_amount}
 Payment: ${formatStatusText(data.paymentStatus)}
 
 Track or manage your booking:
-https://hummarichikitsa.vercel.app
+https://hummarichikitsa.pinakito.com
 
 Thank you – Hummari Chikitsa
         `.trim();
@@ -143,7 +143,7 @@ Thank you – Hummari Chikitsa
         doc.setFontSize(10);
         doc.setTextColor(150);
         doc.text("This is a computer-generated receipt.", 105, 250, { align: "center" });
-        doc.text("https://hummarichikitsa.vercel.app", 105, 255, { align: "center" });
+        doc.text("https://hummarichikitsa.pinakito.com", 105, 255, { align: "center" });
 
         doc.save(`Receipt_AP-${appointment?.token}.pdf`);
     };
